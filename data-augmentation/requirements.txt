@@ -1,0 +1,18 @@
+# Data augmentation pipeline dependencies.
+#
+# parse.py            -> pandas, beautifulsoup4
+# map_summary_i.py    -> ollama, pandas, tqdm
+# map_industry_i.py   -> sentence-transformers, pandas, numpy, tqdm
+#
+# Beyond pip:
+#   - map_summary_i.py needs an Ollama runtime (https://ollama.com)
+#     and the model pulled:  ollama pull gemma4:e4b
+#   - map_industry_i.py needs the gated HF model google/embeddinggemma-300m
+#     (accept its license, then `huggingface-cli login` or set HF_TOKEN)
+
+pandas
+beautifulsoup4
+tqdm
+numpy
+ollama>=0.4
+sentence-transformers>=3.2
