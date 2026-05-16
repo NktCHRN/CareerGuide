@@ -10,13 +10,13 @@ Extracts four fields from each resume's Resume_html column:
 Parses HTML deterministically using section ID prefixes which are
 stable across the dataset (e.g. SECTION_SUMM*, SECTION_EDUC*, SECTION_SKLL*).
 
-Enriches the split CSVs (train/validation/test) under ./data/output/ with
+Enriches the split CSVs (train/validation/test) under ./data/ with
 four new columns — summary, additional_info, education, skills — by joining
-each split's ``identifier`` against ``ID`` in ./data/input/Resume.csv.
+each split's ``identifier`` against ``ID`` in ./data/Resume.csv.
 
 Usage:
     python main.py
-    python main.py --resume-csv data/input/Resume.csv --splits-dir data/output
+    python main.py --resume-csv data/Resume.csv --splits-dir data
 """
 
 from __future__ import annotations
@@ -385,10 +385,10 @@ def enrich_split(split_path: Path, index: dict[int, dict]) -> None:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--resume-csv", type=Path,
-                    default=Path("data/input/Resume.csv"),
+                    default=Path("data/Resume.csv"),
                     help="Path to Resume.csv")
     ap.add_argument("--splits-dir", type=Path,
-                    default=Path("data/output"),
+                    default=Path("data"),
                     help="Directory containing train/validation/test CSVs")
     args = ap.parse_args()
 

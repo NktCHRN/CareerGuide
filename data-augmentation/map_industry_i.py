@@ -11,10 +11,10 @@ most-recent experience (highest index) down to the oldest:
     `industry_{i+1}` is propagated to `industry_i`. Otherwise we fall
     back to a cosine top-1 match between just experience `i` (its
     title + description, no surrounding context) and the `processed`
-    column of `data/input/livecareer_resume_categories.csv`, mapped
+    column of `data/livecareer_resume_categories.csv`, mapped
     back to the `original` column.
 
-ISCO groups are looked up in `data/input/occupations_en.csv` via the
+ISCO groups are looked up in `data/occupations_en.csv` via the
 `conceptUri` → `iscoGroup` mapping.
 
 Embeddings come from `google/embeddinggemma-300m`. EmbeddingGemma uses
@@ -462,13 +462,13 @@ def enrich_split(
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--categories-csv", type=Path,
-                    default=Path("data/input/livecareer_resume_categories.csv"),
+                    default=Path("data/livecareer_resume_categories.csv"),
                     help="CSV with 'original' and 'processed' columns")
     ap.add_argument("--occupations-csv", type=Path,
-                    default=Path("data/input/occupations_en.csv"),
+                    default=Path("data/occupations_en.csv"),
                     help="ESCO occupations CSV with conceptUri/iscoGroup")
     ap.add_argument("--splits-dir", type=Path,
-                    default=Path("data/output"),
+                    default=Path("data"),
                     help="Directory containing train/validation/test CSVs")
     ap.add_argument("--embed-model", default=EMBED_MODEL)
     args = ap.parse_args()
