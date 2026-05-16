@@ -1,0 +1,8 @@
+neural:
+  batch_size: 256  # Batch size for neural transformation
+  learning_rate: 2.0e-5  # Learning rate for neural transformation
+  epochs: 50  # Number of epochs for neural transformation
+  patience: 6  # Patience for early stopping
+  hidden_sizes: [512]  # Hidden sizes for neural transformation
+  dropout: True  # If doing dropout for neural transformation
+  dropout_rate: 0.5  # Dropout rate for neural transformation

@@ -1,0 +1,10 @@
+# Model Karrierewege_plus (cp paraphrase variant)
+# Data Karrierewege_plus
+model:
+  embedding_model_finetuning: "all-mpnet-base-v2"
+  embedding_model_transformation: "ElenaSenger/career-path-representation-mpnet-karrierewege-cp"
+data:
+  data_type: "karrierwege_plus"
+output:
+  path_embedding_model: "./output/all-mpnet-base-v2_finetuned_karrierwege_plus" #adjust if needed
+  path_neural_transformation_model: "./output/vector_transform_model_karrierwege_plus.pth"

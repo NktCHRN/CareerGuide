@@ -1,0 +1,11 @@
+# Model Decorte
+# Data Decorte
+model:
+  embedding_model_finetuning: "all-mpnet-base-v2"
+  embedding_model_transformation: "ElenaSenger/career-path-representation-mpnet-decorte"
+data:
+  data_type: "decorte"
+output:
+  path_embedding_model: "./output/all-mpnet-base-v2_finetuned_decorte" #adjust if needed
+  path_neural_transformation_model: "./output/vector_transform_model_decorte.pth"
+
