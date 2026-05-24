@@ -1,0 +1,74 @@
+{
+    "MRR": 0.2518,
+    "R@5": 0.3486,
+    "R@10": 0.4219,
+    "n_models": 10,
+    "per_seed": [
+        {
+            "ckpt": "mlp_model_decorte_seed0.pth",
+            "MRR": 0.2508,
+            "R@5": 0.3447,
+            "R@10": 0.4203
+        },
+        {
+            "ckpt": "mlp_model_decorte_seed1.pth",
+            "MRR": 0.2517,
+            "R@5": 0.3486,
+            "R@10": 0.4214
+        },
+        {
+            "ckpt": "mlp_model_decorte_seed2.pth",
+            "MRR": 0.2505,
+            "R@5": 0.3486,
+            "R@10": 0.4197
+        },
+        {
+            "ckpt": "mlp_model_decorte_seed3.pth",
+            "MRR": 0.2509,
+            "R@5": 0.3458,
+            "R@10": 0.4208
+        },
+        {
+            "ckpt": "mlp_model_decorte_seed4.pth",
+            "MRR": 0.2505,
+            "R@5": 0.3503,
+            "R@10": 0.4225
+        },
+        {
+            "ckpt": "mlp_model_decorte_seed5.pth",
+            "MRR": 0.2469,
+            "R@5": 0.3464,
+            "R@10": 0.4186
+        },
+        {
+            "ckpt": "mlp_model_decorte_seed6.pth",
+            "MRR": 0.2528,
+            "R@5": 0.3537,
+            "R@10": 0.4275
+        },
+        {
+            "ckpt": "mlp_model_decorte_seed7.pth",
+            "MRR": 0.2508,
+            "R@5": 0.343,
+            "R@10": 0.427
+        },
+        {
+            "ckpt": "mlp_model_decorte_seed8.pth",
+            "MRR": 0.2489,
+            "R@5": 0.352,
+            "R@10": 0.4197
+        },
+        {
+            "ckpt": "mlp_model_decorte_seed9.pth",
+            "MRR": 0.248,
+            "R@5": 0.3453,
+            "R@10": 0.4203
+        }
+    ],
+    "MRR_seed_mean": 0.2502,
+    "MRR_seed_std": 0.0018,
+    "R@5_seed_mean": 0.3478,
+    "R@5_seed_std": 0.0034,
+    "R@10_seed_mean": 0.4218,
+    "R@10_seed_std": 0.0031
+}

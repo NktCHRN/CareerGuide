@@ -1,0 +1,88 @@
+{
+    "MRR": 0.2836,
+    "R@5": 0.3951,
+    "R@10": 0.4919,
+    "n_models": 10,
+    "by_prefix_len": {
+        "1": {
+            "n": 569,
+            "MRR": 0.2838,
+            "R@5": 0.3989,
+            "R@10": 0.4921
+        },
+        ">=2": {
+            "n": 1218,
+            "MRR": 0.2836,
+            "R@5": 0.3933,
+            "R@10": 0.4918
+        }
+    },
+    "per_seed": [
+        {
+            "ckpt": "lstm-nodescription_seed0.pth",
+            "MRR": 0.2821,
+            "R@5": 0.3951,
+            "R@10": 0.4818
+        },
+        {
+            "ckpt": "lstm-nodescription_seed1.pth",
+            "MRR": 0.28,
+            "R@5": 0.394,
+            "R@10": 0.4773
+        },
+        {
+            "ckpt": "lstm-nodescription_seed2.pth",
+            "MRR": 0.2841,
+            "R@5": 0.4057,
+            "R@10": 0.4941
+        },
+        {
+            "ckpt": "lstm-nodescription_seed3.pth",
+            "MRR": 0.2828,
+            "R@5": 0.4029,
+            "R@10": 0.4891
+        },
+        {
+            "ckpt": "lstm-nodescription_seed4.pth",
+            "MRR": 0.2792,
+            "R@5": 0.3934,
+            "R@10": 0.4891
+        },
+        {
+            "ckpt": "lstm-nodescription_seed5.pth",
+            "MRR": 0.2775,
+            "R@5": 0.3889,
+            "R@10": 0.4824
+        },
+        {
+            "ckpt": "lstm-nodescription_seed6.pth",
+            "MRR": 0.2814,
+            "R@5": 0.3973,
+            "R@10": 0.4829
+        },
+        {
+            "ckpt": "lstm-nodescription_seed7.pth",
+            "MRR": 0.2856,
+            "R@5": 0.3979,
+            "R@10": 0.4936
+        },
+        {
+            "ckpt": "lstm-nodescription_seed8.pth",
+            "MRR": 0.2806,
+            "R@5": 0.3956,
+            "R@10": 0.4874
+        },
+        {
+            "ckpt": "lstm-nodescription_seed9.pth",
+            "MRR": 0.2758,
+            "R@5": 0.3794,
+            "R@10": 0.4661
+        }
+    ],
+    "MRR_seed_mean": 0.2809,
+    "MRR_seed_std": 0.003,
+    "R@5_seed_mean": 0.395,
+    "R@5_seed_std": 0.0073,
+    "R@10_seed_mean": 0.4844,
+    "R@10_seed_std": 0.0084
+}
