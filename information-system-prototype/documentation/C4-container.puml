@@ -1,0 +1,76 @@
+@startuml CareerGuide_Container_Diagram
+skinparam dpi 300
+skinparam defaultFontSize 18
+
+skinparam classFontSize 18
+skinparam classAttributeFontSize 16
+skinparam sequenceMessageFontSize 18
+skinparam noteFontSize 16
+skinparam titleFontSize 22
+!NEW_C4_STYLE=1
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+SHOW_PERSON_OUTLINE()
+
+title C4 Container Diagram — CareerGuide
+
+' Стиль для асинхронної взаємодії через Message Bus — пунктирні стрілки
+AddRelTag("async", $textColor="#5B3F8C", $lineColor="#5B3F8C", $lineStyle=DashedLine(), $lineThickness=2)
+
+Person(user, "Користувач", "Особа, яка має бажання змінити професію")
+
+Container(ui, "CareerGuide UI", "Container: Next.js", "Користувацький інтерфейс системи")
+Container(api_gw, "API Gateway", "", "Маршрутизація, валідація аутентифікації та авторизації")
+ContainerDb(cache, "Cache", "Key-Value Store", "Кешування сесій та проміжних даних")
+
+Container(user_api, "User Service", "Container: Python", "Керування акаунтом користувача")
+ContainerDb(user_db, "User Service DB", "RDBMS", "Зберігання даних користувачів")
+
+Container(rec_api, "Recommendation Service API", "Container: Python", "Надання рекомендацій професій для користувачів")
+Container(rec_worker, "Recommendation Service Worker", "Container: Python", "Обчислення рекомендацій професій для користувачів")
+ContainerDb(rec_db, "Recommendation Service DB", "RDBMS", "Зберігання векторів та даних для рекомендацій")
+
+Container(career_api, "Career Service", "Container: Python", "Детальна інформація про професії")
+ContainerDb(career_db, "Career Service DB", "RDBMS", "Зберігання даних щодо професій")
+
+Container(chat_api, "Chat Service", "Container: Python", "Керування чатами")
+ContainerDb(chat_db, "Chat Service DB", "RDBMS", "Зберігання історії діалогів")
+
+System_Ext(email_service, "Email Service", "Сервіс електронної пошти")
+System_Ext(object_storage, "Object Storage", "Об'єктне сховище файлів")
+System_Ext(llm_api, "LLM API", "Сервіс великої мовної моделі")
+
+' Синхронна взаємодія
+Rel(user, ui, "Використовує", "HTTPS")
+Rel(ui, api_gw, "Використовує", "HTTPS")
+
+Rel(api_gw, user_api, "Маршрутизує запити", "HTTP")
+Rel(api_gw, rec_api, "Маршрутизує запити", "HTTP")
+Rel(api_gw, career_api, "Маршрутизує запити", "HTTP")
+Rel(api_gw, chat_api, "Маршрутизує запити", "HTTP")
+
+Rel(user_api, user_db, "Читає / записує", "SQL/TCP")
+Rel(user_api, cache, "Кешує дані")
+Rel(user_api, email_service, "Надсилає листи", "HTTPS")
+Rel(user_api, object_storage, "Зберігає / завантажує резюме", "HTTPS")
+
+Rel(rec_api, rec_db, "Читає / записує", "SQL/TCP")
+Rel(rec_worker, rec_db, "Читає / записує", "SQL/TCP")
+Rel(rec_worker, object_storage, "Завантажує резюме", "HTTPS")
+Rel(rec_worker, llm_api, "Робить запити до LLM / парсить резюме", "HTTPS")
+
+Rel(career_api, career_db, "Читає / записує", "SQL/TCP")
+Rel(career_api, object_storage, "Зберігає / завантажує файли щодо професій", "HTTPS")
+
+Rel(chat_api, chat_db, "Читає / записує", "SQL/TCP")
+Rel(chat_api, llm_api, "Робить запити до LLM", "HTTPS")
+
+' Асинхронна взаємодія через Message Bus — пунктирні зв'язки
+Rel(user_api, rec_worker, "Публікує події користувача", "Message Bus", $tags="async")
+Rel(user_api, chat_api, "Публікує події користувача", "Message Bus", $tags="async")
+Rel(career_api, rec_worker, "Публікує події професій", "Message Bus", $tags="async")
+Rel(career_api, chat_api, "Публікує події професій", "Message Bus", $tags="async")
+
+SHOW_LEGEND()
+
+@enduml
