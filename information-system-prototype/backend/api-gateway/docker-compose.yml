@@ -1,0 +1,46 @@
+# ============================================================================
+#  Per-service docker-compose.yml — api-gateway.
+#  Brings up ONLY the gateway container. It is STATELESS (no database, no Kafka):
+#  it validates JWTs and reverse-proxies to the other services over the shared
+#  `career-net` network, reaching them by their container names.
+#
+#  This is the ONLY backend port published to the host (8000) — clients and the
+#  frontend talk to the gateway, never to the services directly.
+#
+#  Prerequisites on `career-net` (started by their own compose files):
+#    career-user-service:8001  career-career-service:8002
+#    career-recommendation-api:8003  career-chat-service:8004
+#  (the shared infra from infra/ provides the `career-net` network).
+#
+#  Run:
+#     cd backend/api-gateway
+#     docker compose --env-file ../../.env up -d --build
+#
+#  --env-file ../../.env is needed for ${...} interpolation AND so JWT_SECRET
+#  from the root .env reaches the container (it MUST match user-service's secret).
+#  All ${...} have defaults, so the gateway comes up even without the flag.
+# ============================================================================
+name: career-api-gateway
+
+services:
+  api-gateway:
+    build: .
+    container_name: career-api-gateway
+    env_file:
+      - path: ../../.env       # root .env → JWT_SECRET, CORS_ORIGINS…
+        required: false        # not required: the defaults below allow it to come up without it
+    environment:
+      # Reach the downstream services by their container names on career-net
+      # (`environment:` overrides `env_file:`). They must run in AUTH_MODE=gateway.
+      USER_SERVICE_URL: http://career-user-service:8001
+      CAREER_SERVICE_URL: http://career-career-service:8002
+      RECO_API_URL: http://career-recommendation-api:8003
+      CHAT_SERVICE_URL: http://career-chat-service:8004
+    ports:
+      - "8000:8000"            # the single public backend entry point
+    networks:
+      - career-net
+
+networks:
+  career-net:
+    external: true             # created by infra/docker-compose.yml
