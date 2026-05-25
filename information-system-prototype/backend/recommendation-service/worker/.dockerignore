@@ -1,0 +1,24 @@
+.venv/
+venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.git/
+.gitignore
+*.md
+.env
+*.env
+!.env.example
+.idea/
+.vscode/
+*.log
+docker-compose.yml
+tests/
+# Heavy artifacts/data are mounted at runtime, not baked into the image.
+models/
+data/
+.hf-cache/

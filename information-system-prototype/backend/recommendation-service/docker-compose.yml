@@ -1,0 +1,55 @@
+# ============================================================================
+#  Per-service docker-compose.yml — recommendation-service.
+#  Brings up the recommendation WORKER (background Kafka consumer). The
+#  recommendation-api will be added here later alongside the worker; both share
+#  the SAME logical DB `recommendationdb` in the shared PostgreSQL instance from
+#  infra/ (the worker owns the migrations; the api only reads). No own Postgres.
+#
+#  Prerequisite: the shared infra is already up (see infra/README.md) — the
+#  `postgres`, `kafka`, `minio` containers and the `career-net` network.
+#
+#  Run:
+#     cd backend/recommendation-service
+#     docker compose --env-file ../../.env up -d --build
+#
+#  Model checkpoints (worker/models) and ESCO/LiveCareer data (worker/data) are
+#  mounted at runtime — place them there first (see worker/README.md). The
+#  EmbeddingGemma + career-SBERT downloads are cached in the `hf-cache` volume.
+#
+#  GPU: this image installs the CPU torch wheel. For CUDA, rebuild the image on
+#  an nvidia/cuda base with a matching torch wheel and add a `deploy.resources`
+#  GPU reservation here — or simply run the worker locally with a GPU.
+# ============================================================================
+name: career-recommendation-service
+
+services:
+  worker:
+    build: ./worker
+    container_name: career-recommendation-worker
+    env_file:
+      - path: ../../.env       # root .env → KAFKA_*, S3_*, OPENAI_*, HF_TOKEN…
+        required: false
+    environment:
+      # Connect to the SHARED Postgres (database `recommendationdb`) and the rest
+      # of the infra by their internal docker names (overrides env_file).
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-career}:${POSTGRES_PASSWORD:-career}@postgres:5432/recommendationdb
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      S3_ENDPOINT_URL: http://minio:9000
+    volumes:
+      - ./worker/models:/app/models      # CareerRNN checkpoint + industry vocab
+      - ./worker/data:/app/data          # ESCO skills_en.csv + LiveCareer categories
+      - hf-cache:/app/.hf-cache          # cached HF model downloads
+    ports:
+      - "8005:8005"                      # health only
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8005"
+    networks:
+      - career-net
+
+volumes:
+  hf-cache:
+
+networks:
+  career-net:
+    external: true             # created by infra/docker-compose.yml

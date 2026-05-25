@@ -1,0 +1,34 @@
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- secrets / config (only .env.example is committed) ---
+.env
+*.env
+!.env.example
+
+# --- HF model download cache ---
+.hf-cache/
+.cache/
+
+# --- IDE / OS / logs ---
+.idea/
+.vscode/
+*.log
+.DS_Store
+
+# --- ML artifacts and ESCO/LiveCareer data ARE committed for this prototype ---
+# They are placed manually and required at runtime. The monorepo root .gitignore
+# excludes *.pth / *.csv / industry_to_id.json globally; re-include them here.
+!models/
+!models/*.pth
+!models/*.safetensors
+!models/industry_to_id.json
+!data/
+!data/*.csv

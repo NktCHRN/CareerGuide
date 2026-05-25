@@ -1,0 +1,37 @@
+# --- Web / API (health surface only) ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# --- Validation / settings ---
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# --- DB (async) + pgvector ---
+SQLAlchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+pgvector==0.3.6
+
+# --- Kafka (Message Bus) ---
+aiokafka==0.12.0
+
+# --- S3 / MinIO (resume PDFs) ---
+boto3==1.35.90
+
+# --- ML stack ---
+# torch is pinned so the Docker CPU wheel (installed from the PyTorch CPU index
+# in the Dockerfile) matches; for GPU, install the matching CUDA wheel instead.
+torch==2.5.1
+# EmbeddingGemma (google/embeddinggemma-300m) requires recent sentence-transformers
+# / transformers builds; career-SBERT (mpnet) works on the same versions.
+sentence-transformers>=5.0.0
+transformers>=4.56.0
+huggingface-hub>=0.25.0
+faiss-cpu>=1.8.0          # part of the dissertation stack (ANN; reserved for future use)
+numpy>=1.26,<2.0
+pandas>=2.2.0
+tqdm>=4.66.0
+
+# --- Resume parsing ---
+openai>=1.50.0
+pypdf>=5.0.0
