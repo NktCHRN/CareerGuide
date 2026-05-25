@@ -7,7 +7,7 @@ per-service compose files later attach to.
 | Component | Image | Ports (host) | Purpose |
 |-----------|-------|--------------|-------------|
 | **postgres** | `pgvector/pgvector:pg16` | `5432` | Shared PostgreSQL: `userdb`, `careerdb`, `chatdb`, `recommendationdb` (pgvector) |
-| **kafka** | `bitnami/kafka:3.7` (KRaft) | `29092` | Message Bus (`user-events`, `profession-events`, `resume-results`) |
+| **kafka** | `apache/kafka:3.7.2` (KRaft) | `29092` | Message Bus (`user-events`, `profession-events`, `resume-results`) |
 | **minio** | `minio/minio` | `9000` (S3), `9001` (console) | S3-compatible storage (resumes, profession photos) |
 | **minio-init** | `minio/mc` | — | creates the bucket and uploads the default photo, then exits |
 | **redis** | `redis:7-alpine` | `6379` | in-memory cache (TTL) |
@@ -99,7 +99,7 @@ mc ls local/career-guide/professions/
 Verify that the broker is alive and list the topics:
 
 ```bash
-docker compose exec kafka kafka-topics.sh --bootstrap-server localhost:9092 --list
+docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
 ```
 
 Topics are created automatically on first publish (`AUTO_CREATE_TOPICS_ENABLE=true`,
@@ -108,10 +108,10 @@ Topics are created automatically on first publish (`AUTO_CREATE_TOPICS_ENABLE=tr
 Create a topic explicitly / view messages:
 
 ```bash
-docker compose exec kafka kafka-topics.sh --bootstrap-server localhost:9092 \
+docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
   --create --if-not-exists --topic user-events --partitions 1 --replication-factor 1
 
-docker compose exec kafka kafka-console-consumer.sh --bootstrap-server localhost:9092 \
+docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 \
   --topic user-events --from-beginning
 ```
 

@@ -137,7 +137,7 @@ Confirm the event was emitted:
 
 ```bash
 cd ../../infra
-docker compose exec kafka kafka-console-consumer.sh \
+docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
   --bootstrap-server localhost:9092 --topic user-events --from-beginning
 # → you will see user.profile.updated and user.resume.uploaded
 ```
