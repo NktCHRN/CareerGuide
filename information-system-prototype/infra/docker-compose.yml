@@ -1,0 +1,126 @@
+# ============================================================================
+#  CareerGuide — СПІЛЬНА ІНФРАСТРУКТУРА (Kafka, MinIO, Redis) + мережа career-net
+# ----------------------------------------------------------------------------
+#  Бази даних тут НЕМАЄ: за принципом database-per-service кожен сервіс
+#  піднімає власний Postgres у власному docker-compose.yml і чіпляється до
+#  мережі `career-net` як external.
+#
+#  Запуск:   cd infra && docker compose up -d
+#  Значення (креди MinIO, бакет) мають дефолти, тож працює «з коробки».
+#  Щоб узяти креди з кореневого .env:  docker compose --env-file ../.env up -d
+# ============================================================================
+name: career-infra
+
+services:
+  # --- Kafka (KRaft, без ZooKeeper, один брокер) -------------------------------
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: career-kafka
+    ports:
+      - "29092:29092"          # зовнішній лісенер для локальних сервісів (localhost:29092)
+    environment:
+      # KRaft: брокер + контролер в одному вузлі
+      KAFKA_CFG_NODE_ID: "0"
+      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka:9093"
+      # Три лісенери: внутрішній (kafka:9092), контролер (9093), зовнішній (localhost:29092)
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      # Топіки створюються автоматично (прототип, partition=1)
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_NUM_PARTITIONS: "1"
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_CFG_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    volumes:
+      - kafka-data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
+    networks:
+      - career-net
+
+  # --- MinIO (S3-сумісне об'єктне сховище) ------------------------------------
+  minio:
+    image: minio/minio
+    container_name: career-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"            # S3 API
+      - "9001:9001"            # веб-консоль
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - career-net
+
+  # --- minio-init: створює бакет і заливає дефолтне фото професій, потім виходить
+  minio-init:
+    image: minio/mc
+    container_name: career-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      # mc-аліас `local` через MC_HOST_<alias> (без окремого `mc alias set`)
+      MC_HOST_local: http://${S3_ACCESS_KEY:-minioadmin}:${S3_SECRET_KEY:-minioadmin}@minio:9000
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        mc mb --ignore-existing "local/${S3_BUCKET:-career-guide}"
+        if [ -f /assets/profession-default.jpg ]; then
+          mc cp /assets/profession-default.jpg "local/${S3_BUCKET:-career-guide}/professions/_default.jpg"
+          echo "minio-init: залито дефолтне фото → professions/_default.jpg"
+        else
+          echo "minio-init: ./assets/profession-default.jpg не знайдено — пропускаю заливання дефолтного фото"
+        fi
+        echo "minio-init: готово."
+    volumes:
+      - ./assets:/assets:ro
+    networks:
+      - career-net
+    restart: "no"
+
+  # --- Redis (in-memory кеш, TTL) ---------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: career-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - career-net
+
+volumes:
+  kafka-data:
+  minio-data:
+  redis-data:
+
+# Мережа створюється ЦИМ compose з фіксованою назвою `career-net`.
+# Per-service compose-файли підхоплюють її як external (networks: career-net: {external: true}).
+networks:
+  career-net:
+    name: career-net

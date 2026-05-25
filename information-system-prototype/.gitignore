@@ -1,0 +1,46 @@
+# --- секрети / конфіг ---
+.env
+*.env
+!.env.example
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- ML-артефакти та дані (кладуться вручну, не в git) ---
+**/models/*.pth
+**/models/*.safetensors
+**/models/industry_to_id.json
+**/data/esco/*.csv
+**/data/*.csv
+**/data/decorte-extended/
+.cache/
+.huggingface/
+
+# --- Frontend (Next.js) ---
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+npm-debug.log*
+yarn-error.log*
+
+# --- Інфра / локальні томи ---
+**/pgdata/
+**/minio-data/
+**/kafka-data/
+
+# --- IDE / ОС ---
+.idea/
+.vscode/
+*.log
+.DS_Store
+
+# --- Винятки: версіоновані ассети ---
+!infra/assets/profession-default.jpg

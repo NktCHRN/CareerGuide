@@ -1,0 +1,70 @@
+# ============================================================================
+#  ЗРАЗОК per-service docker-compose.yml — user-service.
+#  Решта сервісів повторюють цей шаблон (своя БД + сам сервіс), змінюючи
+#  назву БД, порти й build-контекст. Recommendation-service — окремий випадок:
+#  один compose піднімає recommendationdb (pgvector) + api + worker.
+#
+#  Передумова: спільна інфра вже піднята (див. infra/README.md), існує мережа
+#  career-net.
+#
+#  Запуск:
+#     cd backend/user-service
+#     docker compose --env-file ../../.env up -d --build
+#
+#  --env-file ../../.env потрібен для інтерполяції ${...} у ЦЬОМУ файлі
+#  (Compose шукає .env у каталозі compose-файла, а спільний .env — у корені
+#  репо). Усі ${...} мають дефолти, тож і без прапорця сервіс підніметься.
+# ============================================================================
+name: career-user-service
+
+services:
+  userdb:
+    image: postgres:16
+    container_name: career-userdb
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-career}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-career}
+      POSTGRES_DB: userdb
+    ports:
+      - "5433:5432"            # унікальний хост-порт на сервіс (career→5434, chat→5435, reco→5436…)
+    volumes:
+      - userdb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-career} -d userdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - career-net
+
+  user-service:
+    build: .
+    container_name: career-user-service
+    depends_on:
+      userdb:
+        condition: service_healthy
+    env_file:
+      - path: ../../.env       # кореневий .env → JWT_SECRET, S3_*, OPENAI_*, SES_*, SEED_*…
+        required: false        # не обов'язковий: дефолти нижче дають змогу піднятися й без нього
+    environment:
+      # Перевизначення хостів на внутрішні docker-імена
+      # (`environment:` має пріоритет над `env_file:`).
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-career}:${POSTGRES_PASSWORD:-career}@userdb:5432/userdb
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT_URL: http://minio:9000
+      # AUTH_MODE: gateway     # розкоментуй, коли сервіс працює за API Gateway
+    ports:
+      - "8001:8001"
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8001"
+    networks:
+      - career-net
+
+volumes:
+  userdb-data:
+
+networks:
+  career-net:
+    external: true             # створюється infra/docker-compose.yml
