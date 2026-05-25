@@ -67,6 +67,7 @@ Rel(chat_api, llm_api, "Робить запити до LLM", "HTTPS")
 
 ' Асинхронна взаємодія через Message Bus — пунктирні зв'язки
 Rel(user_api, rec_worker, "Публікує події користувача", "Message Bus", $tags="async")
+Rel(rec_worker, user_api, "Публікує події парсингу", "Message Bus", $tags="async")
 Rel(user_api, chat_api, "Публікує події користувача", "Message Bus", $tags="async")
 Rel(career_api, rec_worker, "Публікує події професій", "Message Bus", $tags="async")
 Rel(career_api, chat_api, "Публікує події професій", "Message Bus", $tags="async")
