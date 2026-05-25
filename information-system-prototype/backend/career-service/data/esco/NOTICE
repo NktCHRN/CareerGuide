@@ -1,0 +1,27 @@
+ESCO classification data
+========================
+
+The CSV files in this directory (occupations_en.csv, skills_en.csv,
+occupationSkillRelations_en.csv) are part of the ESCO classification published
+by the European Commission (Directorate-General for Employment, Social Affairs
+and Inclusion).
+
+Attribution (required):
+
+    This service uses the ESCO classification of the European Commission.
+    https://ec.europa.eu/esco
+
+License / reuse:
+    ESCO is made available for reuse for any purpose, free of charge, under
+    Commission Decision 2011/833/EU on the reuse of Commission documents
+    (commercial use and redistribution permitted). See:
+    https://esco.ec.europa.eu/en/about-esco/faq
+
+Notes:
+  - These files are redistributed UNMODIFIED from the official ESCO download.
+  - ESCO version used: v1.x  (TODO: record the exact version you downloaded —
+    shown on the ESCO download page, e.g. v1.1.1 / v1.2).
+  - career-service seeds a DERIVED subset into `careerdb` (released occupations
+    only, knowledge-type relations only, a reduced set of columns). Any such
+    adapted/derived form must be clearly indicated as adapted from ESCO — see
+    the alembic migration `0002_seed_esco`.

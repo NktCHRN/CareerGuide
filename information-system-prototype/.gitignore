@@ -44,3 +44,6 @@ yarn-error.log*
 
 # --- Exceptions: versioned assets ---
 !infra/assets/profession-default.jpg
+# ESCO catalogue CSVs are committed for career-service (free reuse under EU
+# Commission Decision 2011/833/EU; see backend/career-service/data/esco/NOTICE).
+!backend/career-service/data/esco/*.csv

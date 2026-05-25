@@ -13,8 +13,8 @@ __pycache__/
 *.env
 !.env.example
 
-# --- ESCO data (placed manually, not committed — see README) ---
-data/esco/*.csv
+# Note: the ESCO CSVs in data/esco/ ARE committed (free reuse under EU
+# Commission Decision 2011/833/EU) — re-included via the root .gitignore.
 
 # --- IDE / OS / logs ---
 .idea/
