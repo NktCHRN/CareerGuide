@@ -1,12 +1,12 @@
 # ============================================================================
 #  Per-service docker-compose.yml — recommendation-service.
-#  Brings up the recommendation WORKER (background Kafka consumer). The
-#  recommendation-api will be added here later alongside the worker; both share
-#  the SAME logical DB `recommendationdb` in the shared PostgreSQL instance from
+#  Brings up the recommendation WORKER (background Kafka consumer) AND the
+#  recommendation-API (synchronous cosine ranking, port 8003). Both share the
+#  SAME logical DB `recommendationdb` in the shared PostgreSQL instance from
 #  infra/ (the worker owns the migrations; the api only reads). No own Postgres.
 #
 #  Prerequisite: the shared infra is already up (see infra/README.md) — the
-#  `postgres`, `kafka`, `minio` containers and the `career-net` network.
+#  `postgres`, `kafka`, `minio`, `redis` containers and the `career-net` network.
 #
 #  Run:
 #     cd backend/recommendation-service
@@ -44,6 +44,28 @@ services:
     command: >
       sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8005"
+    networks:
+      - career-net
+
+  api:
+    build: ./api
+    container_name: career-recommendation-api
+    env_file:
+      - path: ../../.env       # root .env → JWT_SECRET, AUTH_MODE, CORS_ORIGINS…
+        required: false
+    environment:
+      # Read-only access to the SHARED Postgres (database `recommendationdb`) and
+      # Redis by their internal docker names (overrides env_file).
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-career}:${POSTGRES_PASSWORD:-career}@postgres:5432/recommendationdb
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8003:8003"
+    # The api only reads; it needs the tables the worker creates via `alembic
+    # upgrade head`. depends_on just orders container start — the worker runs the
+    # migrations at boot (before its slow model loading), so the tables exist by
+    # the time the api serves its first request.
+    depends_on:
+      - worker
     networks:
       - career-net
 
