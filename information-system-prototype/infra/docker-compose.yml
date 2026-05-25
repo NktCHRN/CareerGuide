@@ -1,9 +1,10 @@
 # ============================================================================
-#  CareerGuide — SHARED INFRASTRUCTURE (Kafka, MinIO, Redis) + career-net network
+#  CareerGuide — SHARED INFRASTRUCTURE (PostgreSQL, Kafka, MinIO, Redis) + career-net network
 # ----------------------------------------------------------------------------
-#  There is NO database here: following the database-per-service principle, each
-#  service brings up its own Postgres in its own docker-compose.yml and attaches
-#  to the `career-net` network as external.
+#  A SINGLE shared PostgreSQL instance hosts one logical database per service
+#  (userdb / careerdb / chatdb / recommendationdb) — "database-per-service" at the
+#  schema level, but one physical server. Per-service compose files no longer run
+#  their own Postgres; they connect to `postgres:5432` over the `career-net` network.
 #
 #  Run:   cd infra && docker compose up -d
 #  The values (MinIO credentials, bucket) have defaults, so it works out of the box.
@@ -12,6 +13,28 @@
 name: career-infra
 
 services:
+  # --- PostgreSQL (single shared instance; pgvector image so recommendationdb has the extension) ---
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: career-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-career}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-career}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Init scripts run ONLY on first volume initialization: create the 4 logical DBs.
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-career}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - career-net
+
   # --- Kafka (KRaft, no ZooKeeper, single broker) ------------------------------
   kafka:
     image: bitnami/kafka:3.7
@@ -115,6 +138,7 @@ services:
       - career-net
 
 volumes:
+  pgdata:
   kafka-data:
   minio-data:
   redis-data:

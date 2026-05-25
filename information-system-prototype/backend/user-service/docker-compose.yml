@@ -1,11 +1,11 @@
 # ============================================================================
 #  SAMPLE per-service docker-compose.yml — user-service.
-#  The other services follow this template (own DB + the service itself),
-#  changing the DB name, ports, and build context. Recommendation-service is a
-#  special case: a single compose brings up recommendationdb (pgvector) + api + worker.
+#  Brings up ONLY the service container; the database lives in the SHARED
+#  PostgreSQL instance from infra/ (logical DB `userdb`). The other services
+#  follow this template, changing the build context, port, and DB name.
 #
-#  Prerequisite: the shared infra is already up (see infra/README.md) and the
-#  career-net network exists.
+#  Prerequisite: the shared infra is already up (see infra/README.md) — the
+#  `postgres`, `kafka`, `minio`, `redis` containers and the `career-net` network.
 #
 #  Run:
 #     cd backend/user-service
@@ -19,38 +19,16 @@
 name: career-user-service
 
 services:
-  userdb:
-    image: postgres:16
-    container_name: career-userdb
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-career}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-career}
-      POSTGRES_DB: userdb
-    ports:
-      - "5433:5432"            # unique host port per service (career→5434, chat→5435, reco→5436…)
-    volumes:
-      - userdb-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-career} -d userdb"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - career-net
-
   user-service:
     build: .
     container_name: career-user-service
-    depends_on:
-      userdb:
-        condition: service_healthy
     env_file:
       - path: ../../.env       # root .env → JWT_SECRET, S3_*, OPENAI_*, SES_*, SEED_*…
         required: false        # not required: the defaults below allow it to come up without it
     environment:
-      # Override hosts with internal docker names
-      # (`environment:` takes priority over `env_file:`).
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-career}:${POSTGRES_PASSWORD:-career}@userdb:5432/userdb
+      # Connect to the SHARED Postgres (database `userdb`) and the rest of the
+      # infra by their internal docker names (`environment:` overrides `env_file:`).
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-career}:${POSTGRES_PASSWORD:-career}@postgres:5432/userdb
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       REDIS_URL: redis://redis:6379/0
       S3_ENDPOINT_URL: http://minio:9000
@@ -62,9 +40,6 @@ services:
              uvicorn app.main:app --host 0.0.0.0 --port 8001"
     networks:
       - career-net
-
-volumes:
-  userdb-data:
 
 networks:
   career-net:

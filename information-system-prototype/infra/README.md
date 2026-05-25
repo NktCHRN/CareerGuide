@@ -1,18 +1,21 @@
 # infra — CareerGuide shared infrastructure
 
-Brings up the event broker, object storage and cache that are shared across all
-services, and also creates the Docker network `career-net`, which the
+Brings up the shared PostgreSQL database, event broker, object storage and cache
+used by all services, and also creates the Docker network `career-net`, which the
 per-service compose files later attach to.
 
 | Component | Image | Ports (host) | Purpose |
 |-----------|-------|--------------|-------------|
+| **postgres** | `pgvector/pgvector:pg16` | `5432` | Shared PostgreSQL: `userdb`, `careerdb`, `chatdb`, `recommendationdb` (pgvector) |
 | **kafka** | `bitnami/kafka:3.7` (KRaft) | `29092` | Message Bus (`user-events`, `profession-events`, `resume-results`) |
 | **minio** | `minio/minio` | `9000` (S3), `9001` (console) | S3-compatible storage (resumes, profession photos) |
 | **minio-init** | `minio/mc` | — | creates the bucket and uploads the default photo, then exits |
 | **redis** | `redis:7-alpine` | `6379` | in-memory cache (TTL) |
 
-> ⚠️ There are no databases here. Following the **database-per-service**
-> principle, each service brings up its own Postgres in its own `docker-compose.yml`.
+> One **shared** PostgreSQL instance holds a logical database per service
+> (`userdb`, `careerdb`, `chatdb`, `recommendationdb`) — database-per-service at
+> the schema level. Services connect to `postgres:5432`; they no longer run their
+> own Postgres.
 
 ## Prerequisites
 - Docker + Docker Compose v2.
@@ -46,8 +49,29 @@ Stop (data is kept in volumes) / tear down together with the data:
 
 ```bash
 docker compose down
-docker compose down -v        # also remove the kafka/minio/redis volumes
+docker compose down -v        # also remove the postgres/kafka/minio/redis volumes
 ```
+
+## PostgreSQL
+
+One shared instance with a logical database per service. The init scripts in
+`postgres/init/` run on first startup (when the `pgdata` volume is empty) and
+create `userdb`, `careerdb`, `chatdb`, `recommendationdb`, enabling the `vector`
+extension in `recommendationdb`.
+
+```bash
+# the 4 databases exist ($POSTGRES_USER defaults to `career`):
+docker compose exec postgres psql -U "$POSTGRES_USER" -c "\l"
+# pgvector is enabled in recommendationdb:
+docker compose exec postgres psql -U "$POSTGRES_USER" -d recommendationdb -c "\dx"
+```
+
+Addressing:
+- from **Docker** containers (services on `career-net`): `postgres:5432`;
+- from a **local** process (uvicorn on the host): `localhost:5432`.
+
+> The databases are created only on the **first** start. If you change the init
+> scripts, re-create the volume: `docker compose down -v && docker compose up -d`.
 
 ## MinIO
 
@@ -124,9 +148,9 @@ docker network inspect career-net
 ## What's next
 
 1. Bring up the infra (this directory).
-2. Bring up the services you need with their own compose files — each one pulls in its own
-   DB and attaches to `career-net` so it can see `kafka` / `minio` / `redis` by their
-   internal names. Reference example: `backend/user-service/docker-compose.yml`:
+2. Bring up the services you need with their own compose files — each one attaches to
+   `career-net` so it can see `postgres` / `kafka` / `minio` / `redis` by their internal
+   names (no service runs its own Postgres). Reference example: `backend/user-service/docker-compose.yml`:
    ```bash
    cd backend/user-service
    docker compose --env-file ../../.env up -d --build

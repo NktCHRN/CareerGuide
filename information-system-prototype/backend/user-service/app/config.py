@@ -37,8 +37,8 @@ class Settings(BaseSettings):
     VERIFY_TOKEN_TTL_HOURS: int = 48
     RESET_TOKEN_TTL_HOURS: int = 1
 
-    # --- PostgreSQL (userdb) ---
-    DATABASE_URL: str = "postgresql+asyncpg://career:career@localhost:5433/userdb"
+    # --- PostgreSQL (userdb in the shared instance; exposed on localhost:5432) ---
+    DATABASE_URL: str = "postgresql+asyncpg://career:career@localhost:5432/userdb"
 
     # --- Kafka ---
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:29092"

@@ -48,13 +48,13 @@ service issues tokens (access ~30 min, refresh ~30 days).
 
 ## Running with Docker (recommended)
 
-Prerequisite — the shared infra (Kafka/MinIO/Redis) and the `career-net` network are up:
+Prerequisite — the shared infra (PostgreSQL/Kafka/MinIO/Redis) and the `career-net` network are up:
 
 ```bash
 cd ../../infra && docker compose up -d        # one-time; see infra/README.md for details
 ```
 
-Then the service itself (brings up `userdb` + `user-service`, runs migrations+seeding):
+Then the service itself (brings up only `user-service`; migrations+seeding run against `userdb` in the shared Postgres):
 
 ```bash
 cd backend/user-service
@@ -64,17 +64,16 @@ curl http://localhost:8001/api/health
 
 ## Local run (venv + uvicorn)
 
-The service reaches the shared infra through the externally exposed ports (Kafka `29092`,
-MinIO `9000`, Redis `6379`) — the values in the root `.env` already point at localhost.
+The service reaches the shared infra through the externally exposed ports (Postgres `5432`,
+Kafka `29092`, MinIO `9000`, Redis `6379`) — the values in the root `.env` already point at localhost.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# DB for the local run: or bring up just userdb via docker-compose
-#   docker compose --env-file ../../.env up -d userdb
-# (the container maps userdb to localhost:5433 — exactly the DSN in config.py defaults)
+# DB for the local run: the shared Postgres from infra already exposes localhost:5432
+# (its userdb database) — exactly the DSN in config.py defaults.
 
 alembic upgrade head                 # schema + idempotent seed (admin, demo user)
 uvicorn app.main:app --reload --port 8001
