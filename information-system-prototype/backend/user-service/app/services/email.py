@@ -1,12 +1,12 @@
-"""Надсилання листів через AWS SES — за фіче-флагом `FEATURE_EMAIL_ENABLED`.
+"""Sending emails via AWS SES — gated by the `FEATURE_EMAIL_ENABLED` feature flag.
 
-Контракт (спільні конвенції):
-  • false (default): до AWS не звертатись, лише залогувати; у dev-режимі
-    викликач сам повертає токен/посилання у відповіді ендпойнта;
-  • true: слати через SES; токени у відповіді не повертати.
+Contract (shared conventions):
+  • false (default): do not call AWS, only log; in dev mode the caller itself
+    returns the token/link in the endpoint response;
+  • true: send via SES; do not return tokens in the response.
 
-`send_email` повертає bool — чи був лист реально відправлений через SES
-(False означає, що спрацював fallback-лог і викликач може віддати dev-токен).
+`send_email` returns a bool — whether the email was actually sent via SES
+(False means the fallback log fired and the caller may return a dev token).
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ async def send_email(
     *,
     dev_context: str | None = None,
 ) -> bool:
-    """Надсилає лист. Повертає True, якщо лист справді пішов через SES."""
+    """Sends an email. Returns True if the email was actually sent via SES."""
     if not settings.FEATURE_EMAIL_ENABLED:
         logger.info(
             "EMAIL[disabled] to=%s subject=%r%s",
@@ -58,13 +58,13 @@ async def send_email(
         await asyncio.to_thread(_send_via_ses, to, subject, html)
         logger.info("EMAIL[sent] to=%s subject=%r", to, subject)
         return True
-    except Exception:  # noqa: BLE001 — у прототипі помилка пошти не валить запит
+    except Exception:  # noqa: BLE001 — in the prototype an email failure does not break the request
         logger.exception("EMAIL[failed] to=%s subject=%r", to, subject)
         return False
 
 
 # --------------------------------------------------------------------------- #
-#  Готові шаблони
+#  Ready-made templates
 # --------------------------------------------------------------------------- #
 def verify_email_html(token: str) -> tuple[str, str]:
     link = f"{settings.FRONTEND_BASE_URL}/verify-email?token={token}"

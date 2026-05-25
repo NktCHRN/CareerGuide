@@ -1,4 +1,4 @@
-# --- секрети / конфіг ---
+# --- secrets / config ---
 .env
 *.env
 !.env.example
@@ -13,7 +13,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# --- ML-артефакти та дані (кладуться вручну, не в git) ---
+# --- ML artifacts and data (placed manually, not in git) ---
 **/models/*.pth
 **/models/*.safetensors
 **/models/industry_to_id.json
@@ -31,16 +31,16 @@ frontend/.turbo/
 npm-debug.log*
 yarn-error.log*
 
-# --- Інфра / локальні томи ---
+# --- Infra / local volumes ---
 **/pgdata/
 **/minio-data/
 **/kafka-data/
 
-# --- IDE / ОС ---
+# --- IDE / OS ---
 .idea/
 .vscode/
 *.log
 .DS_Store
 
-# --- Винятки: версіоновані ассети ---
+# --- Exceptions: versioned assets ---
 !infra/assets/profession-default.jpg

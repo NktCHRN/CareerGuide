@@ -8,12 +8,12 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# --- секрети / конфіг (комітиться лише .env.example) ---
+# --- secrets / config (only .env.example is committed) ---
 .env
 *.env
 !.env.example
 
-# --- IDE / ОС / логи ---
+# --- IDE / OS / logs ---
 .idea/
 .vscode/
 *.log

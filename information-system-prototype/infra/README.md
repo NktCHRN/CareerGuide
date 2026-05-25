@@ -1,68 +1,68 @@
-# infra — спільна інфраструктура CareerGuide
+# infra — CareerGuide shared infrastructure
 
-Піднімає спільні для всіх сервісів брокер подій, об'єктне сховище та кеш, а
-також створює Docker-мережу `career-net`, до якої потім чіпляються
-per-service compose-файли.
+Brings up the event broker, object storage and cache that are shared across all
+services, and also creates the Docker network `career-net`, which the
+per-service compose files later attach to.
 
-| Компонент | Образ | Порти (host) | Призначення |
+| Component | Image | Ports (host) | Purpose |
 |-----------|-------|--------------|-------------|
 | **kafka** | `bitnami/kafka:3.7` (KRaft) | `29092` | Message Bus (`user-events`, `profession-events`, `resume-results`) |
-| **minio** | `minio/minio` | `9000` (S3), `9001` (консоль) | S3-сумісне сховище (резюме, фото професій) |
-| **minio-init** | `minio/mc` | — | створює бакет і заливає дефолтне фото, потім виходить |
-| **redis** | `redis:7-alpine` | `6379` | in-memory кеш (TTL) |
+| **minio** | `minio/minio` | `9000` (S3), `9001` (console) | S3-compatible storage (resumes, profession photos) |
+| **minio-init** | `minio/mc` | — | creates the bucket and uploads the default photo, then exits |
+| **redis** | `redis:7-alpine` | `6379` | in-memory cache (TTL) |
 
-> ⚠️ Баз даних тут немає. За принципом **database-per-service** кожен сервіс
-> піднімає власний Postgres у власному `docker-compose.yml`.
+> ⚠️ There are no databases here. Following the **database-per-service**
+> principle, each service brings up its own Postgres in its own `docker-compose.yml`.
 
-## Передумови
+## Prerequisites
 - Docker + Docker Compose v2.
-- Кореневий `.env` (необов'язково для інфри, але потрібен сервісам):
+- A root `.env` (optional for the infra, but needed by the services):
   ```bash
   cp ../.env.example ../.env
   ```
 
-## Запуск
+## Running
 
 ```bash
 cd infra
 docker compose up -d
 ```
 
-Працює «з коробки» з дефолтними кредами MinIO (`minioadmin` / `minioadmin`).
-Щоб узяти креди з кореневого `.env` (мають збігатися із значеннями, які
-використовують сервіси):
+It works out of the box with the default MinIO credentials (`minioadmin` / `minioadmin`).
+To take the credentials from the root `.env` (they must match the values used by
+the services):
 
 ```bash
 docker compose --env-file ../.env up -d
 ```
 
-Перевірити стан і дочекатися `healthy`:
+Check the status and wait for `healthy`:
 
 ```bash
 docker compose ps
 ```
 
-Зупинити (дані лишаються у томах) / прибрати разом з даними:
+Stop (data is kept in volumes) / tear down together with the data:
 
 ```bash
 docker compose down
-docker compose down -v        # також видалити томи kafka/minio/redis
+docker compose down -v        # also remove the kafka/minio/redis volumes
 ```
 
 ## MinIO
 
-- Консоль: <http://localhost:9001> (логін/пароль — `S3_ACCESS_KEY` / `S3_SECRET_KEY`,
-  дефолт `minioadmin` / `minioadmin`).
+- Console: <http://localhost:9001> (login/password — `S3_ACCESS_KEY` / `S3_SECRET_KEY`,
+  default `minioadmin` / `minioadmin`).
 - S3 API: <http://localhost:9000>.
-- Бакет `career-guide` створюється автоматично (`minio-init`).
+- The `career-guide` bucket is created automatically (`minio-init`).
 
-Розкладка об'єктів:
-- фото професій — `professions/{profession_id}.{jpg|png|webp}`, дефолт `professions/_default.jpg`;
-- резюме — `resumes/{user_id}/{uuid}.pdf`.
+Object layout:
+- profession photos — `professions/{profession_id}.{jpg|png|webp}`, default `professions/_default.jpg`;
+- resumes — `resumes/{user_id}/{uuid}.pdf`.
 
-### Залити фото професії вручну
-Поклади дефолтне фото в `infra/assets/profession-default.jpg` (його залиє
-`minio-init` як `_default.jpg`), або завантаж фото конкретної професії через `mc`:
+### Upload a profession photo manually
+Put the default photo into `infra/assets/profession-default.jpg` (it will be uploaded by
+`minio-init` as `_default.jpg`), or upload a photo for a specific profession via `mc`:
 
 ```bash
 mc alias set local http://localhost:9000 minioadmin minioadmin
@@ -72,16 +72,16 @@ mc ls local/career-guide/professions/
 
 ## Kafka
 
-Перевірити, що брокер живий, і переглянути топіки:
+Verify that the broker is alive and list the topics:
 
 ```bash
 docker compose exec kafka kafka-topics.sh --bootstrap-server localhost:9092 --list
 ```
 
-Топіки створюються автоматично при першій публікації (`AUTO_CREATE_TOPICS_ENABLE=true`,
+Topics are created automatically on first publish (`AUTO_CREATE_TOPICS_ENABLE=true`,
 `partition=1`): `user-events`, `profession-events`, `resume-results`.
 
-Створити топік явно / подивитися повідомлення:
+Create a topic explicitly / view messages:
 
 ```bash
 docker compose exec kafka kafka-topics.sh --bootstrap-server localhost:9092 \
@@ -91,9 +91,9 @@ docker compose exec kafka kafka-console-consumer.sh --bootstrap-server localhost
   --topic user-events --from-beginning
 ```
 
-Адресація брокера:
-- з **Docker**-контейнерів (сервіси в мережі `career-net`): `kafka:9092`;
-- з **локального** процесу (uvicorn на хості): `localhost:29092`.
+Broker addressing:
+- from **Docker** containers (services on the `career-net` network): `kafka:9092`;
+- from a **local** process (uvicorn on the host): `localhost:29092`.
 
 ## Redis
 
@@ -101,13 +101,13 @@ docker compose exec kafka kafka-console-consumer.sh --bootstrap-server localhost
 docker compose exec redis redis-cli ping        # -> PONG
 ```
 
-- з Docker: `redis://redis:6379/0`;
-- локально: `redis://localhost:6379/0`.
+- from Docker: `redis://redis:6379/0`;
+- locally: `redis://localhost:6379/0`.
 
-## Мережа `career-net`
+## The `career-net` network
 
-Цей compose створює зовнішню мережу з фіксованою назвою `career-net`. Кожен
-per-service `docker-compose.yml` підключається до неї як external:
+This compose creates an external network with the fixed name `career-net`. Each
+per-service `docker-compose.yml` connects to it as external:
 
 ```yaml
 networks:
@@ -115,20 +115,20 @@ networks:
     external: true
 ```
 
-Перевірити:
+Check it:
 
 ```bash
 docker network inspect career-net
 ```
 
-## Що далі
+## What's next
 
-1. Підняти інфру (цей каталог).
-2. Підняти потрібні сервіси їхніми власними compose-файлами — кожен тягне свою
-   БД і чіпляється до `career-net`, щоб бачити `kafka` / `minio` / `redis` за
-   внутрішніми іменами. Приклад-зразок: `backend/user-service/docker-compose.yml`:
+1. Bring up the infra (this directory).
+2. Bring up the services you need with their own compose files — each one pulls in its own
+   DB and attaches to `career-net` so it can see `kafka` / `minio` / `redis` by their
+   internal names. Reference example: `backend/user-service/docker-compose.yml`:
    ```bash
    cd backend/user-service
    docker compose --env-file ../../.env up -d --build
    ```
-3. Для запуску всього бекенда разом — Kubernetes-маніфести в `k8s/`.
+3. To run the whole backend together — Kubernetes manifests are in `k8s/`.

@@ -11,7 +11,7 @@ from sqlalchemy.pool import NullPool
 from app.config import settings
 from app.db import Base
 
-# Імпортуємо моделі, щоб вони зареєструвалися у Base.metadata.
+# Import the models so they register in Base.metadata.
 import app.models  # noqa: F401,E402
 
 config = context.config

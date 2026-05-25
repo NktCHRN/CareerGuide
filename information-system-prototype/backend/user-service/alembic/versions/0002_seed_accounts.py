@@ -1,4 +1,4 @@
-"""seed admin + demo user (ідемпотентно, з .env)
+"""seed admin + demo user (idempotent, from .env)
 
 Revision ID: 0002
 Revises: 0001
@@ -22,7 +22,7 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-# Демо-профіль для SEED_USER — щоб одразу були вхідні дані для рекомендацій.
+# Demo profile for SEED_USER — so there is input data for recommendations right away.
 DEMO_SUMMARY = (
     "Backend-розробник із 5+ роками досвіду побудови RESTful-сервісів на Python. "
     "Проєктую мікросервісну архітектуру, працюю з PostgreSQL, Kafka та хмарною "
@@ -104,7 +104,7 @@ def _insert_experience(bind, *, user_id: int, exp: dict, position: int) -> None:
 def upgrade() -> None:
     bind = op.get_bind()
 
-    # --- Адмін ---
+    # --- Admin ---
     if _account_exists(bind, settings.SEED_ADMIN_EMAIL) is None:
         admin_id = _insert_user(
             bind,
@@ -117,7 +117,7 @@ def upgrade() -> None:
             bind, user_id=admin_id, name=settings.SEED_ADMIN_NAME, summary=None, skills=[], hobbies=[]
         )
 
-    # --- Демо-користувач ---
+    # --- Demo user ---
     if _account_exists(bind, settings.SEED_USER_EMAIL) is None:
         user_id = _insert_user(
             bind,

@@ -1,7 +1,8 @@
-"""Бізнес-логіка профілю: застосування змін, мердж розпарсеного резюме,
-побудова payload події `user.profile.updated`.
+"""Profile business logic: applying changes, merging a parsed resume,
+building the `user.profile.updated` event payload.
 
-Винесено окремо, бо потрібно і роутерам, і Kafka-консюмеру, і backfill-скрипту.
+Extracted separately because it is needed by the routers, the Kafka consumer,
+and the backfill script alike.
 """
 from __future__ import annotations
 
@@ -21,12 +22,12 @@ from app.schemas import (
 from app.services.industries import is_valid_industry
 from app.utils import compute_months_of_experience
 
-# Поля профілю, зміна яких впливає на рекомендації → публікувати user.profile.updated.
+# Profile fields whose change affects recommendations → publish user.profile.updated.
 RECO_FIELDS = ("summary", "skills", "experiences")
 
 
 def _norm_skills(skills: list[str] | None) -> list[str]:
-    """Прибирає порожні/дублікати (case-insensitive), зберігаючи порядок."""
+    """Removes empty entries/duplicates (case-insensitive), preserving order."""
     out: list[str] = []
     seen: set[str] = set()
     for s in skills or []:
@@ -62,9 +63,9 @@ def _make_experience(user_id: int, data: dict[str, Any], position: int) -> Profi
 
 
 def apply_profile_update(profile: Profile, update: ProfileUpdate) -> bool:
-    """Застосовує часткове оновлення (None = поле не чіпати).
+    """Applies a partial update (None = leave the field untouched).
 
-    Повертає True, якщо змінилося хоч одне reco-поле (summary/skills/experiences).
+    Returns True if at least one reco field changed (summary/skills/experiences).
     """
     data = update.model_dump(exclude_unset=True)
     reco_changed = False
@@ -99,11 +100,11 @@ def apply_profile_update(profile: Profile, update: ProfileUpdate) -> bool:
 
 
 def merge_parsed_profile(profile: Profile, parsed: dict[str, Any]) -> None:
-    """Мердж результату парсингу резюме (worker) у профіль.
+    """Merges the resume parsing result (from the worker) into the profile.
 
-    Скаляри заповнюються лише якщо порожні (не затирає правки користувача),
-    навички об'єднуються, нові досвіди додаються (дедуп за title+start) —
-    тож обробка ідемпотентна.
+    Scalars are filled in only if empty (does not overwrite the user's edits),
+    skills are merged, new experiences are appended (deduplicated by title+start) —
+    so the processing is idempotent.
     """
     name = (parsed.get("name") or "").strip()
     if name and not (profile.name or "").strip():
@@ -129,7 +130,7 @@ def merge_parsed_profile(profile: Profile, parsed: dict[str, Any]) -> None:
 
 
 async def load_full_profile(session: AsyncSession, user_id: int) -> Profile | None:
-    """Завантажує профіль із досвідами та ESCO-навичками."""
+    """Loads the profile together with its experiences and ESCO skills."""
     result = await session.execute(
         select(Profile)
         .where(Profile.user_id == user_id)
@@ -139,7 +140,7 @@ async def load_full_profile(session: AsyncSession, user_id: int) -> Profile | No
 
 
 def build_profile_out(user: User, profile: Profile) -> ProfileOut:
-    """Збирає DTO профілю для віддачі клієнту."""
+    """Assembles the profile DTO to return to the client."""
     return ProfileOut(
         user_id=user.id,
         email=user.email,
@@ -164,7 +165,7 @@ def build_profile_out(user: User, profile: Profile) -> ProfileOut:
 
 
 def build_profile_event_payload(profile: Profile) -> dict[str, Any]:
-    """Payload поля `profile` події `user.profile.updated` (для worker/chat)."""
+    """Payload of the `profile` field of the `user.profile.updated` event (for worker/chat)."""
     return {
         "summary": profile.summary,
         "skills": list(profile.skills or []),

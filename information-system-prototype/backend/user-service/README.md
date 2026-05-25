@@ -1,59 +1,60 @@
-# user-service — Керування акаунтом користувача
+# user-service — User account management
 
-Мікросервіс **UserService** системи CareerGuide (C4, табл. 4.2): автентифікація
-(єдиний емітент JWT), профіль користувача та резюме. Зберігає резюме в S3 і
-надсилає листи (SES, за фіче-флагом), але **НЕ парсить резюме** — парсинг робить
-recommendation-worker, а результат повертається назад через шину Kafka.
+The **UserService** microservice of the CareerGuide system (C4, table 4.2):
+authentication (the sole JWT issuer), user profile, and resumes. It stores
+resumes in S3 and sends emails (SES, behind a feature flag), but **does NOT parse
+resumes** — parsing is done by the recommendation-worker, and the result is
+returned back over the Kafka bus.
 
-- **Порт:** `8001`
-- **База:** `userdb` (PostgreSQL 16)
-- **Стек:** Python 3.12 · FastAPI · Pydantic v2 · SQLAlchemy 2.x (async, asyncpg) ·
+- **Port:** `8001`
+- **Database:** `userdb` (PostgreSQL 16)
+- **Stack:** Python 3.12 · FastAPI · Pydantic v2 · SQLAlchemy 2.x (async, asyncpg) ·
   Alembic · aiokafka · boto3 · redis · passlib[bcrypt] · python-jose
 
-## Функціонал (ФВ1–ФВ8)
+## Functionality (FR1–FR8)
 
-| Група | Ендпойнти |
+| Group | Endpoints |
 |-------|-----------|
-| Автентифікація | `register`, `login`, `refresh`, `verify-email`, `request-password-reset`, `reset-password`, `change-password` |
-| Профіль | `GET/PUT /api/profile/me`, `PATCH /api/profile/me/criteria` |
-| Резюме | `POST /api/profile/me/resume`, `GET /api/profile/me/resumes` |
-| Довідники | `GET /api/industries`, `GET /api/recommendation-criteria` |
-| Службове | `GET /api/health` |
+| Authentication | `register`, `login`, `refresh`, `verify-email`, `request-password-reset`, `reset-password`, `change-password` |
+| Profile | `GET/PUT /api/profile/me`, `PATCH /api/profile/me/criteria` |
+| Resumes | `POST /api/profile/me/resume`, `GET /api/profile/me/resumes` |
+| Reference data | `GET /api/industries`, `GET /api/recommendation-criteria` |
+| Service | `GET /api/health` |
 
-Усі ендпойнти під префіксом `/api`. Інтерактивна документація: `/docs`.
+All endpoints live under the `/api` prefix. Interactive docs: `/docs`.
 
-## Події Kafka
+## Kafka events
 
-**Публікує** (топік `user-events`):
-- `user.profile.updated` — при зміні `summary` / `skills` / `experiences` або
-  `recommendation_criteria` (запускає у worker обчислення вектора й мапінг навичок);
-- `user.resume.uploaded` — `{user_id, s3_key}` після завантаження PDF (підхоплює worker);
-- `user.deleted` — при видаленні акаунта.
+**Publishes** (topic `user-events`):
+- `user.profile.updated` — on changes to `summary` / `skills` / `experiences` or
+  `recommendation_criteria` (triggers vector computation and skill mapping in the worker);
+- `user.resume.uploaded` — `{user_id, s3_key}` after a PDF is uploaded (picked up by the worker);
+- `user.deleted` — when an account is deleted.
 
-**Споживає** (топік `resume-results`, група `user-resume-results`, ідемпотентно):
-- `user.profile.parsed` — мердж розпарсеного резюме у профіль → зберігає й
-  **публікує** `user.profile.updated`;
-- `user.esco_skills.mapped` — зберігає змаповані ESCO-навички у поле `esco_skills`;
-  `user.profile.updated` **НЕ** публікує (інакше — нескінченний цикл).
+**Consumes** (topic `resume-results`, group `user-resume-results`, idempotently):
+- `user.profile.parsed` — merges the parsed resume into the profile → saves it and
+  **publishes** `user.profile.updated`;
+- `user.esco_skills.mapped` — saves the mapped ESCO skills into the `esco_skills` field;
+  does **NOT** publish `user.profile.updated` (otherwise it would loop forever).
 
-## Режими автентифікації (`AUTH_MODE`)
-- `local` (default для ізольованого dev) — сервіс сам валідує JWT тим самим `JWT_SECRET`;
-- `gateway` (K8s/прод) — довіряє заголовкам `X-User-Id` / `X-User-Role` від API Gateway.
+## Authentication modes (`AUTH_MODE`)
+- `local` (default for isolated dev) — the service validates JWTs itself with the same `JWT_SECRET`;
+- `gateway` (K8s/prod) — trusts the `X-User-Id` / `X-User-Role` headers from the API Gateway.
 
-JWT — HS256. Payload access: `{sub, role, email, type:"access", exp}`. Видає токени
-**лише** цей сервіс (access ~30 хв, refresh ~30 днів).
+JWT — HS256. Access payload: `{sub, role, email, type:"access", exp}`. Only **this**
+service issues tokens (access ~30 min, refresh ~30 days).
 
 ---
 
-## Запуск через Docker (рекомендовано)
+## Running with Docker (recommended)
 
-Передумова — піднята спільна інфра (Kafka/MinIO/Redis) і мережа `career-net`:
+Prerequisite — the shared infra (Kafka/MinIO/Redis) and the `career-net` network are up:
 
 ```bash
-cd ../../infra && docker compose up -d        # один раз; деталі — infra/README.md
+cd ../../infra && docker compose up -d        # one-time; see infra/README.md for details
 ```
 
-Потім сам сервіс (піднімає `userdb` + `user-service`, виконує міграції+сідинг):
+Then the service itself (brings up `userdb` + `user-service`, runs migrations+seeding):
 
 ```bash
 cd backend/user-service
@@ -61,36 +62,36 @@ docker compose --env-file ../../.env up -d --build
 curl http://localhost:8001/api/health
 ```
 
-## Локальний запуск (venv + uvicorn)
+## Local run (venv + uvicorn)
 
-Сервіс ходить у спільну інфру через прокинуті назовні порти (Kafka `29092`,
-MinIO `9000`, Redis `6379`) — значення в кореневому `.env` уже на localhost.
+The service reaches the shared infra through the externally exposed ports (Kafka `29092`,
+MinIO `9000`, Redis `6379`) — the values in the root `.env` already point at localhost.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# БД для локального запуску: або підніми лише userdb з docker-compose
+# DB for the local run: or bring up just userdb via docker-compose
 #   docker compose --env-file ../../.env up -d userdb
-# (контейнер мапить userdb на localhost:5433 — саме цей DSN у дефолтах config.py)
+# (the container maps userdb to localhost:5433 — exactly the DSN in config.py defaults)
 
-alembic upgrade head                 # схема + ідемпотентний сід (адмін, демо-користувач)
+alembic upgrade head                 # schema + idempotent seed (admin, demo user)
 uvicorn app.main:app --reload --port 8001
 ```
 
-Конфіг читає кореневий `../../.env` (а за наявності — локальний `.env` сервіса,
-який перекриває кореневий; шаблон — `.env.example`).
+The config reads the root `../../.env` (and, if present, the service's local `.env`,
+which overrides the root one; the template is `.env.example`).
 
-### Сід-акаунти (з `.env`, `SEED_*`)
-| Роль | Email | Пароль |
+### Seed accounts (from `.env`, `SEED_*`)
+| Role | Email | Password |
 |------|-------|--------|
 | admin | `admin@career-guide.local` | `admin12345` |
-| user  | `user@career-guide.local`  | `user12345` (з демо-профілем) |
+| user  | `user@career-guide.local`  | `user12345` (with a demo profile) |
 
-### Backfill векторів
-Після першого запуску — опублікувати `user.profile.updated` для всіх профілів,
-щоб worker порахував вектори:
+### Backfilling vectors
+After the first run — publish `user.profile.updated` for all profiles so the
+worker computes the vectors:
 
 ```bash
 python -m app.events.backfill_users
@@ -98,12 +99,12 @@ python -m app.events.backfill_users
 
 ---
 
-## Приклади `curl`
+## `curl` examples
 
 ```bash
 B=http://localhost:8001
 
-# 1) Реєстрація (з профілем). У dev повертається email_verification_token.
+# 1) Registration (with a profile). In dev the email_verification_token is returned.
 curl -s -X POST $B/api/auth/register -H 'Content-Type: application/json' -d '{
   "email":"alice@example.com","password":"supersecret1",
   "profile":{"name":"Alice","summary":"Backend developer",
@@ -111,58 +112,58 @@ curl -s -X POST $B/api/auth/register -H 'Content-Type: application/json' -d '{
     "experiences":[{"title":"Backend Developer","industry":"INFORMATION-TECHNOLOGY",
                     "start":"5/2019","end":"current"}]}}'
 
-# 2) Логін → access/refresh
+# 2) Login → access/refresh
 ACCESS=$(curl -s -X POST $B/api/auth/login -H 'Content-Type: application/json' \
   -d '{"email":"alice@example.com","password":"supersecret1"}' | jq -r .access_token)
 
-# 3) Профіль
+# 3) Profile
 curl -s $B/api/profile/me -H "Authorization: Bearer $ACCESS"
 
-# 4) Оновлення профілю (тягне подію user.profile.updated)
+# 4) Profile update (triggers the user.profile.updated event)
 curl -s -X PUT $B/api/profile/me -H "Authorization: Bearer $ACCESS" \
   -H 'Content-Type: application/json' \
   -d '{"summary":"Data engineer","skills":["python","sql"]}'
 
-# 5) Критерії рекомендацій (тягне user.profile.updated)
+# 5) Recommendation criteria (triggers user.profile.updated)
 curl -s -X PATCH $B/api/profile/me/criteria -H "Authorization: Bearer $ACCESS" \
   -H 'Content-Type: application/json' -d '{"recommendation_criteria":["experience","hobbies"]}'
 
-# 6) Завантаження резюме → S3 + подія user.resume.uploaded
+# 6) Resume upload → S3 + user.resume.uploaded event
 curl -s -X POST $B/api/profile/me/resume -H "Authorization: Bearer $ACCESS" \
   -F "file=@cv.pdf;type=application/pdf"
 curl -s $B/api/profile/me/resumes -H "Authorization: Bearer $ACCESS"
 ```
 
-Переконатися, що подія пішла:
+Confirm the event was emitted:
 
 ```bash
 cd ../../infra
 docker compose exec kafka kafka-console-consumer.sh \
   --bootstrap-server localhost:9092 --topic user-events --from-beginning
-# → побачиш user.profile.updated та user.resume.uploaded
+# → you will see user.profile.updated and user.resume.uploaded
 ```
 
 ---
 
-## Модель даних (`userdb`)
+## Data model (`userdb`)
 `users` · `profiles` · `profile_experiences` · `esco_skills` · `email_tokens` · `resumes`.
 
-- `experiences[].industry` — ключ `industry_to_id` у UPPERCASE (напр.
-  `INFORMATION-TECHNOLOGY`) або `null`; саме так очікує модель worker. Список
-  ключів із підписами для випадаючого списку — `GET /api/industries`.
+- `experiences[].industry` — an `industry_to_id` key in UPPERCASE (e.g.
+  `INFORMATION-TECHNOLOGY`) or `null`; this is exactly what the worker model
+  expects. The list of keys with labels for a dropdown is `GET /api/industries`.
 - `experiences[].start` — `"M/YYYY"`; `end` — `"M/YYYY"` | `"current"` | `null`;
-  `months_of_experience` рахується автоматично, якщо не задано.
+  `months_of_experience` is computed automatically if not provided.
 - `recommendation_criteria` ⊆ `{experience, psychological, hobbies, competencies}`,
-  default `{experience}`. **У прототипі реально працює лише `experience`**; інші
-  критерії приймаються й зберігаються як задача на майбутнє.
+  default `{experience}`. **In the prototype only `experience` actually works**; the
+  other criteria are accepted and stored as a task for the future.
 
-## Фіче-флаг листів (SES)
-`FEATURE_EMAIL_ENABLED` (default `false`). При `false` листи не надсилаються
-(лог), і в `APP_ENV=dev` ендпойнти повертають токен у відповіді
-(`email_verification_token`, `dev_token`). При `true` лист іде через AWS SES, а
-токени у відповіді не повертаються.
+## Email feature flag (SES)
+`FEATURE_EMAIL_ENABLED` (default `false`). When `false`, emails are not sent
+(logged instead), and in `APP_ENV=dev` the endpoints return the token in the
+response (`email_verification_token`, `dev_token`). When `true`, the email goes
+through AWS SES and the tokens are not returned in the response.
 
-## Кеш
-Зібраний профіль (`GET /api/profile/me`) кешується в Redis
-(`user:profile:{id}`, TTL `PROFILE_CACHE_TTL_SECONDS`) і скидається при будь-якій
-зміні профілю. Redis — best-effort: його недоступність не валить запити.
+## Cache
+The assembled profile (`GET /api/profile/me`) is cached in Redis
+(`user:profile:{id}`, TTL `PROFILE_CACHE_TTL_SECONDS`) and invalidated on any
+profile change. Redis is best-effort: its unavailability does not break requests.

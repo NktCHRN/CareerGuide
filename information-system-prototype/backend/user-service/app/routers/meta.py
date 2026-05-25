@@ -1,4 +1,4 @@
-"""Довідкові дані для фронта (не вимагають автентифікації)."""
+"""Reference data for the frontend (does not require authentication)."""
 from __future__ import annotations
 
 from fastapi import APIRouter
@@ -11,11 +11,11 @@ router = APIRouter(prefix="/api", tags=["meta"])
 
 @router.get("/industries")
 async def list_industries() -> dict:
-    """Ключі `industry_to_id` із людинозрозумілими підписами (для випадаючого списку)."""
+    """`industry_to_id` keys with human-readable labels (for the dropdown)."""
     return {"items": industries_for_ui()}
 
 
 @router.get("/recommendation-criteria")
 async def list_recommendation_criteria() -> dict:
-    """Доступні критерії рекомендацій (ФВ8). У прототипі реально працює `experience`."""
+    """Available recommendation criteria (FR8). In the prototype only `experience` actually works."""
     return {"items": [c.value for c in RecommendationCriterion]}

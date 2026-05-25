@@ -1,8 +1,8 @@
-"""FastAPI-застосунок UserService.
+"""UserService FastAPI application.
 
-Lifespan піднімає Kafka-продюсер (публікація user-events), Kafka-консюмер
-топіка `resume-results` і Redis-кеш; на завершення — коректно зупиняє їх та
-звільняє пул з'єднань БД.
+Lifespan brings up the Kafka producer (publishing user-events), the Kafka
+consumer of the `resume-results` topic and the Redis cache; on shutdown it
+stops them gracefully and releases the DB connection pool.
 """
 from __future__ import annotations
 

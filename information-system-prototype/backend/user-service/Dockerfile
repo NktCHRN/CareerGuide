@@ -6,8 +6,8 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Системні залежності (psycopg/asyncpg/bcrypt збираються з колес, але curl
-# потрібен для health-чеків/діагностики).
+# System dependencies (psycopg/asyncpg/bcrypt are built from wheels, but curl
+# is needed for health checks/diagnostics).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
@@ -21,5 +21,5 @@ COPY app ./app
 
 EXPOSE 8001
 
-# Міграції (+сідинг) і запуск виконуються командою з docker-compose.yml.
+# Migrations (+seeding) and startup are run by the command from docker-compose.yml.
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]

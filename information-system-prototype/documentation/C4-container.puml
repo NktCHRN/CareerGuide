@@ -14,7 +14,7 @@ SHOW_PERSON_OUTLINE()
 
 title C4 Container Diagram — CareerGuide
 
-' Стиль для асинхронної взаємодії через Message Bus — пунктирні стрілки
+' Style for asynchronous interaction via the Message Bus — dashed arrows
 AddRelTag("async", $textColor="#5B3F8C", $lineColor="#5B3F8C", $lineStyle=DashedLine(), $lineThickness=2)
 
 Person(user, "Користувач", "Особа, яка має бажання змінити професію")
@@ -40,7 +40,7 @@ System_Ext(email_service, "Email Service", "Сервіс електронної 
 System_Ext(object_storage, "Object Storage", "Об'єктне сховище файлів")
 System_Ext(llm_api, "LLM API", "Сервіс великої мовної моделі")
 
-' Синхронна взаємодія
+' Synchronous interaction
 Rel(user, ui, "Використовує", "HTTPS")
 Rel(ui, api_gw, "Використовує", "HTTPS")
 
@@ -65,7 +65,7 @@ Rel(career_api, object_storage, "Зберігає / завантажує фай�
 Rel(chat_api, chat_db, "Читає / записує", "SQL/TCP")
 Rel(chat_api, llm_api, "Робить запити до LLM", "HTTPS")
 
-' Асинхронна взаємодія через Message Bus — пунктирні зв'язки
+' Asynchronous interaction via the Message Bus — dashed relations
 Rel(user_api, rec_worker, "Публікує події користувача", "Message Bus", $tags="async")
 Rel(rec_worker, user_api, "Публікує події парсингу", "Message Bus", $tags="async")
 Rel(user_api, chat_api, "Публікує події користувача", "Message Bus", $tags="async")

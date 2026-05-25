@@ -1,35 +1,35 @@
 # ============================================================================
-#  CareerGuide — СПІЛЬНА ІНФРАСТРУКТУРА (Kafka, MinIO, Redis) + мережа career-net
+#  CareerGuide — SHARED INFRASTRUCTURE (Kafka, MinIO, Redis) + career-net network
 # ----------------------------------------------------------------------------
-#  Бази даних тут НЕМАЄ: за принципом database-per-service кожен сервіс
-#  піднімає власний Postgres у власному docker-compose.yml і чіпляється до
-#  мережі `career-net` як external.
+#  There is NO database here: following the database-per-service principle, each
+#  service brings up its own Postgres in its own docker-compose.yml and attaches
+#  to the `career-net` network as external.
 #
-#  Запуск:   cd infra && docker compose up -d
-#  Значення (креди MinIO, бакет) мають дефолти, тож працює «з коробки».
-#  Щоб узяти креди з кореневого .env:  docker compose --env-file ../.env up -d
+#  Run:   cd infra && docker compose up -d
+#  The values (MinIO credentials, bucket) have defaults, so it works out of the box.
+#  To take the credentials from the root .env:  docker compose --env-file ../.env up -d
 # ============================================================================
 name: career-infra
 
 services:
-  # --- Kafka (KRaft, без ZooKeeper, один брокер) -------------------------------
+  # --- Kafka (KRaft, no ZooKeeper, single broker) ------------------------------
   kafka:
     image: bitnami/kafka:3.7
     container_name: career-kafka
     ports:
-      - "29092:29092"          # зовнішній лісенер для локальних сервісів (localhost:29092)
+      - "29092:29092"          # external listener for local services (localhost:29092)
     environment:
-      # KRaft: брокер + контролер в одному вузлі
+      # KRaft: broker + controller in a single node
       KAFKA_CFG_NODE_ID: "0"
       KAFKA_CFG_PROCESS_ROLES: "controller,broker"
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka:9093"
-      # Три лісенери: внутрішній (kafka:9092), контролер (9093), зовнішній (localhost:29092)
+      # Three listeners: internal (kafka:9092), controller (9093), external (localhost:29092)
       KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092"
       KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092"
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT"
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
       KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
-      # Топіки створюються автоматично (прототип, partition=1)
+      # Topics are created automatically (prototype, partition=1)
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_CFG_NUM_PARTITIONS: "1"
       KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
@@ -48,14 +48,14 @@ services:
     networks:
       - career-net
 
-  # --- MinIO (S3-сумісне об'єктне сховище) ------------------------------------
+  # --- MinIO (S3-compatible object storage) -----------------------------------
   minio:
     image: minio/minio
     container_name: career-minio
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"            # S3 API
-      - "9001:9001"            # веб-консоль
+      - "9001:9001"            # web console
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
@@ -70,7 +70,7 @@ services:
     networks:
       - career-net
 
-  # --- minio-init: створює бакет і заливає дефолтне фото професій, потім виходить
+  # --- minio-init: creates the bucket and uploads the default profession photo, then exits
   minio-init:
     image: minio/mc
     container_name: career-minio-init
@@ -78,7 +78,7 @@ services:
       minio:
         condition: service_healthy
     environment:
-      # mc-аліас `local` через MC_HOST_<alias> (без окремого `mc alias set`)
+      # mc alias `local` via MC_HOST_<alias> (without a separate `mc alias set`)
       MC_HOST_local: http://${S3_ACCESS_KEY:-minioadmin}:${S3_SECRET_KEY:-minioadmin}@minio:9000
     entrypoint: ["/bin/sh", "-c"]
     command:
@@ -98,7 +98,7 @@ services:
       - career-net
     restart: "no"
 
-  # --- Redis (in-memory кеш, TTL) ---------------------------------------------
+  # --- Redis (in-memory cache, TTL) -------------------------------------------
   redis:
     image: redis:7-alpine
     container_name: career-redis
@@ -119,8 +119,8 @@ volumes:
   minio-data:
   redis-data:
 
-# Мережа створюється ЦИМ compose з фіксованою назвою `career-net`.
-# Per-service compose-файли підхоплюють її як external (networks: career-net: {external: true}).
+# The network is created by THIS compose with the fixed name `career-net`.
+# Per-service compose files pick it up as external (networks: career-net: {external: true}).
 networks:
   career-net:
     name: career-net

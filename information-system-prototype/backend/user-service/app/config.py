@@ -1,9 +1,10 @@
-"""Налаштування user-service (pydantic-settings).
+"""user-service settings (pydantic-settings).
 
-Читає кореневий монорепо-`.env` (для локального запуску `uvicorn` з каталогу
-сервіса це `../../.env`) і, за наявності, локальний `.env` сервіса, який має
-вищий пріоритет. У Docker значення приходять зі змінних оточення (env_file +
-блок environment у docker-compose.yml), тож відсутні файли просто ігноруються.
+Reads the monorepo root `.env` (for running `uvicorn` locally from the service
+directory this is `../../.env`) and, if present, the service's local `.env`,
+which takes higher priority. In Docker the values come from environment
+variables (env_file + the environment block in docker-compose.yml), so missing
+files are simply ignored.
 """
 from __future__ import annotations
 
@@ -14,25 +15,25 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        # Останній існуючий файл має пріоритет: локальний .env > кореневий .env.
+        # The last existing file wins: local .env > root .env.
         env_file=("../../.env", ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
     )
 
-    # --- Загальні ---
+    # --- General ---
     APP_ENV: str = "dev"  # dev | prod
     AUTH_MODE: str = "local"  # local | gateway
     CORS_ORIGINS: str = "http://localhost:3000"
 
-    # --- JWT (HS256, видає лише user-service) ---
+    # --- JWT (HS256, issued only by user-service) ---
     JWT_SECRET: str = "change-me-dev-secret-rotate-in-prod"
     JWT_ALG: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
-    # --- Email-токени (verify / reset) ---
+    # --- Email tokens (verify / reset) ---
     VERIFY_TOKEN_TTL_HOURS: int = 48
     RESET_TOKEN_TTL_HOURS: int = 1
 
@@ -42,7 +43,7 @@ class Settings(BaseSettings):
     # --- Kafka ---
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:29092"
 
-    # --- Redis (кеш) ---
+    # --- Redis (cache) ---
     REDIS_URL: str = "redis://localhost:6379/0"
     PROFILE_CACHE_TTL_SECONDS: int = 300
 
@@ -54,17 +55,17 @@ class Settings(BaseSettings):
     S3_REGION: str = "us-east-1"
     RESUME_PRESIGN_TTL_SECONDS: int = 3600
 
-    # --- Email / AWS SES (фіче-флаг, default off) ---
+    # --- Email / AWS SES (feature flag, default off) ---
     FEATURE_EMAIL_ENABLED: bool = False
     AWS_SES_REGION: str = "us-east-1"
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
     SES_FROM_EMAIL: str = "no-reply@career-guide.local"
 
-    # Базовий URL фронта — для побудови посилань у листах.
+    # Frontend base URL — used to build links in emails.
     FRONTEND_BASE_URL: str = "http://localhost:3000"
 
-    # --- Сідинг початкових акаунтів (alembic) ---
+    # --- Seeding of initial accounts (alembic) ---
     SEED_ADMIN_EMAIL: str = "admin@career-guide.local"
     SEED_ADMIN_PASSWORD: str = "admin12345"
     SEED_ADMIN_NAME: str = "Administrator"

@@ -1,8 +1,8 @@
-"""FastAPI-залежності: сесія БД, поточний користувач, перевірка адміна.
+"""FastAPI dependencies: DB session, current user, admin check.
 
-Підтримує два режими автентифікації (`AUTH_MODE`):
-  • gateway — довіряти заголовкам `X-User-Id` / `X-User-Role` від API Gateway;
-  • local   — валідувати JWT тим самим секретом (ізольований dev сервіса).
+Supports two authentication modes (`AUTH_MODE`):
+  • gateway — trust the `X-User-Id` / `X-User-Role` headers from the API Gateway;
+  • local   — validate the JWT with the same secret (isolated service dev).
 """
 from __future__ import annotations
 

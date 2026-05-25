@@ -1,4 +1,4 @@
-"""Дрібні утиліти: парсинг дат досвіду у форматі "M/YYYY"."""
+"""Small utilities: parsing experience dates in the "M/YYYY" format."""
 from __future__ import annotations
 
 import re
@@ -17,7 +17,7 @@ def is_valid_month_year(value: str) -> bool:
 
 
 def parse_month_year(value: str) -> tuple[int, int] | None:
-    """Повертає (month, year) або None, якщо рядок не у форматі "M/YYYY"."""
+    """Returns (month, year) or None if the string is not in the "M/YYYY" format."""
     m = MONTH_YEAR_RE.match(value)
     if not m:
         return None
@@ -28,9 +28,9 @@ def parse_month_year(value: str) -> tuple[int, int] | None:
 
 
 def compute_months_of_experience(start: str | None, end: str | None) -> int | None:
-    """Кількість місяців між start і end ("current" → поточний місяць).
+    """Number of months between start and end ("current" → current month).
 
-    Приклад: 5/2019 → 8/2021 = (2021-2019)*12 + (8-5) = 27.
+    Example: 5/2019 → 8/2021 = (2021-2019)*12 + (8-5) = 27.
     """
     if not start:
         return None

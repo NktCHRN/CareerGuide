@@ -1,13 +1,13 @@
-"""Довідник галузей (industry) — ключі словника `industry_to_id` рекомендатора.
+"""Industry reference data — keys of the recommender's `industry_to_id` mapping.
 
-Значення `industry` кожного досвіду публікується саме у цій UPPERCASE-формі,
-бо так його очікує модель у recommendation-worker (industry_to_id.json).
-Тут зберігаємо набір валідних ключів і людинозрозумілі підписи для фронта.
+Each experience's `industry` value is published exactly in this UPPERCASE form,
+because that is what the model in recommendation-worker expects (industry_to_id.json).
+Here we keep the set of valid keys and human-readable labels for the frontend.
 """
 from __future__ import annotations
 
-# Ключі (UPPERCASE) → людинозрозумілий підпис. Джерело: models/industry_to_id.json
-# рекомендатора (без службового "<unk>": 0).
+# Keys (UPPERCASE) → human-readable label. Source: models/industry_to_id.json
+# of the recommender (without the service entry "<unk>": 0).
 INDUSTRY_LABELS: dict[str, str] = {
     "ACCOUNTANT": "Accounting",
     "ADVOCATE": "Legal / Advocacy",
@@ -44,5 +44,5 @@ def is_valid_industry(value: str | None) -> bool:
 
 
 def industries_for_ui() -> list[dict[str, str]]:
-    """Список `{key, label}` для випадаючого списку на фронті."""
+    """List of `{key, label}` for the frontend dropdown."""
     return [{"key": k, "label": v} for k, v in INDUSTRY_LABELS.items()]

@@ -1,4 +1,4 @@
-"""Pydantic v2 DTO для user-service."""
+"""Pydantic v2 DTOs for user-service."""
 from __future__ import annotations
 
 import re
@@ -11,8 +11,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.services.industries import is_valid_industry
 from app.utils import CURRENT, is_valid_month_year
 
-# Легка перевірка email (не EmailStr): дозволяємо `.local`-домени сіду/дефолтів,
-# які email-validator відхиляє як reserved TLD.
+# Lightweight email check (not EmailStr): we allow the `.local` domains of the
+# seed/defaults, which email-validator rejects as a reserved TLD.
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -24,7 +24,7 @@ def normalize_email(value: str) -> str:
 
 
 # --------------------------------------------------------------------------- #
-#  Спільне
+#  Shared
 # --------------------------------------------------------------------------- #
 class MessageResponse(BaseModel):
     detail: str
@@ -51,7 +51,7 @@ def _validate_month_year(value: str | None, *, allow_current: bool) -> str | Non
 
 
 # --------------------------------------------------------------------------- #
-#  Профіль — вкладені структури
+#  Profile — nested structures
 # --------------------------------------------------------------------------- #
 class Education(BaseModel):
     level: str | None = None
@@ -63,7 +63,7 @@ class Education(BaseModel):
 class ExperienceIn(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     description: str | None = None
-    industry: str | None = None  # ключ industry_to_id (UPPERCASE) або null
+    industry: str | None = None  # industry_to_id key (UPPERCASE) or null
     start: str | None = None  # "M/YYYY"
     end: str | None = None  # "M/YYYY" | "current"
     months_of_experience: int | None = Field(default=None, ge=0)
@@ -101,10 +101,10 @@ class EscoSkillOut(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
-#  Профіль — вхід / вихід
+#  Profile — input / output
 # --------------------------------------------------------------------------- #
 class ProfileUpdate(BaseModel):
-    """Поля профілю, які користувач може задати (реєстрація / PUT profile)."""
+    """Profile fields the user can set (registration / PUT profile)."""
 
     name: str | None = None
     summary: str | None = None
@@ -152,7 +152,7 @@ class CriteriaUpdate(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
-#  Автентифікація
+#  Authentication
 # --------------------------------------------------------------------------- #
 class RegisterRequest(BaseModel):
     email: str
@@ -173,13 +173,13 @@ class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
-    expires_in: int  # секунди життя access-токена
+    expires_in: int  # access-token lifetime in seconds
 
 
 class RegisterResponse(TokenPair):
     user_id: int
-    # У dev-режимі (APP_ENV=dev, FEATURE_EMAIL_ENABLED=false) повертаємо токен
-    # підтвердження пошти, бо лист не надсилається.
+    # In dev mode (APP_ENV=dev, FEATURE_EMAIL_ENABLED=false) we return the email
+    # verification token, because no email is sent.
     email_verification_token: str | None = None
 
 
@@ -204,13 +204,13 @@ class ChangePasswordRequest(BaseModel):
 
 
 class DevTokenResponse(MessageResponse):
-    """Відповідь ендпойнтів, що шлють листи; у dev несе токен."""
+    """Response for endpoints that send emails; in dev it carries the token."""
 
     dev_token: str | None = None
 
 
 # --------------------------------------------------------------------------- #
-#  Резюме
+#  Resume
 # --------------------------------------------------------------------------- #
 class ResumeOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)

@@ -1,19 +1,19 @@
-"""Назви топіків/подій та конструктори payload-ів (спільні конвенції Kafka)."""
+"""Topic/event names and payload constructors (shared Kafka conventions)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
 
-# --- Топіки ---
+# --- Topics ---
 TOPIC_USER_EVENTS = "user-events"
 TOPIC_RESUME_RESULTS = "resume-results"
 
-# --- Події, які ПУБЛІКУЄ user-service (топік user-events) ---
+# --- Events PUBLISHED by user-service (topic user-events) ---
 EVENT_PROFILE_UPDATED = "user.profile.updated"
 EVENT_RESUME_UPLOADED = "user.resume.uploaded"
 EVENT_USER_DELETED = "user.deleted"
 
-# --- Події, які СПОЖИВАЄ user-service (топік resume-results) ---
+# --- Events CONSUMED by user-service (topic resume-results) ---
 EVENT_PROFILE_PARSED = "user.profile.parsed"
 EVENT_ESCO_SKILLS_MAPPED = "user.esco_skills.mapped"
 

@@ -1,4 +1,4 @@
-"""Автентифікація та керування паролем (ФВ1–ФВ3, ФВ7)."""
+"""Authentication and password management (FR1–FR3, FR7)."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -42,7 +42,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 # --------------------------------------------------------------------------- #
-#  Хелпери
+#  Helpers
 # --------------------------------------------------------------------------- #
 def _token_pair(user: User) -> TokenPair:
     return TokenPair(
@@ -67,14 +67,14 @@ async def _new_email_token(session: AsyncSession, user_id: int, kind: str, ttl_h
 
 
 def _maybe_dev_token(sent: bool, token: str) -> str | None:
-    """У dev (лист не пішов) повертаємо токен у відповіді; у проді — ніколи."""
+    """In dev (the email was not sent) we return the token in the response; in prod — never."""
     if sent:
         return None
     return token if settings.is_dev else None
 
 
 # --------------------------------------------------------------------------- #
-#  Реєстрація / логін / refresh
+#  Registration / login / refresh
 # --------------------------------------------------------------------------- #
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest, session: AsyncSession = Depends(get_session)) -> RegisterResponse:
@@ -85,7 +85,7 @@ async def register(payload: RegisterRequest, session: AsyncSession = Depends(get
 
     user = User(email=email, password_hash=hash_password(payload.password), role="user", email_verified=False)
     session.add(user)
-    await session.flush()  # отримати user.id
+    await session.flush()  # obtain user.id
 
     profile = Profile(user_id=user.id, skills=[], hobbies=[], recommendation_criteria=["experience"], experiences=[], esco_skills=[])
     reco_changed = False
@@ -131,7 +131,7 @@ async def refresh(payload: RefreshRequest, session: AsyncSession = Depends(get_s
 
 
 # --------------------------------------------------------------------------- #
-#  Підтвердження пошти (ФВ7)
+#  Email confirmation (FR7)
 # --------------------------------------------------------------------------- #
 @router.get("/verify-email", response_model=MessageResponse)
 async def verify_email(token: str = Query(...), session: AsyncSession = Depends(get_session)) -> MessageResponse:
@@ -151,14 +151,14 @@ async def verify_email(token: str = Query(...), session: AsyncSession = Depends(
 
 
 # --------------------------------------------------------------------------- #
-#  Скидання / зміна пароля (ФВ3)
+#  Password reset / change (FR3)
 # --------------------------------------------------------------------------- #
 @router.post("/request-password-reset", response_model=DevTokenResponse)
 async def request_password_reset(
     payload: RequestPasswordReset, session: AsyncSession = Depends(get_session)
 ) -> DevTokenResponse:
     user = await session.scalar(select(User).where(User.email == payload.email.lower()))
-    # Не розкриваємо існування акаунта — відповідь однакова.
+    # Do not reveal whether the account exists — the response is the same.
     if user is None:
         return DevTokenResponse(detail="Якщо такий акаунт існує, лист надіслано")
 

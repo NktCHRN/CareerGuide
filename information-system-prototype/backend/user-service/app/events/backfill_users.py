@@ -1,7 +1,7 @@
-"""Backfill: публікує `user.profile.updated` для всіх профілів.
+"""Backfill: publishes `user.profile.updated` for all profiles.
 
-Запускати після першого підняття системи, щоб worker порахував вектори й
-змапив навички для вже наявних користувачів (зокрема сіду).
+Run after the first system bring-up, so the worker computes the vectors and
+maps the skills for the already-existing users (in particular the seed data).
 
     python -m app.events.backfill_users
 """

@@ -1,7 +1,7 @@
-"""Kafka-продюсер (aiokafka). Публікація подій user-events / (зворотно нічого).
+"""Kafka producer (aiokafka). Publishes user-events / (nothing in return).
 
-Подія публікується ПІСЛЯ коміту транзакції БД (викликається з роутера після
-`await session.commit()`), щоб не анонсувати незбережений стан.
+An event is published AFTER the DB transaction commit (called from the router after
+`await session.commit()`), so as not to announce unsaved state.
 """
 from __future__ import annotations
 
@@ -30,8 +30,8 @@ class EventProducer:
             enable_idempotence=True,
             acks="all",
         )
-        # Брокер може ще підніматися — кілька спроб, далі graceful-degradation
-        # (send() лише попереджає, не валить запит).
+        # The broker may still be starting up — a few attempts, then graceful degradation
+        # (send() only warns, it does not break the request).
         for attempt in range(1, 6):
             try:
                 await producer.start()
@@ -57,5 +57,5 @@ class EventProducer:
         logger.info("→ %s [%s] key=%s", value.get("event"), topic, key)
 
 
-# Глобальний інстанс, керований у lifespan застосунку.
+# Global instance, managed in the application lifespan.
 producer = EventProducer()

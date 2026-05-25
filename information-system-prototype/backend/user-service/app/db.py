@@ -1,4 +1,4 @@
-"""Async-двигун SQLAlchemy 2.x, фабрика сесій і декларативний Base."""
+"""Async SQLAlchemy 2.x engine, session factory and declarative Base."""
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
@@ -27,10 +27,10 @@ SessionFactory = async_sessionmaker(
 
 
 class Base(DeclarativeBase):
-    """Спільний декларативний базовий клас для моделей."""
+    """Shared declarative base class for the models."""
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
-    """FastAPI-залежність: одна сесія на запит."""
+    """FastAPI dependency: one session per request."""
     async with SessionFactory() as session:
         yield session

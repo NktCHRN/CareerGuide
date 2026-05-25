@@ -1,8 +1,8 @@
-"""Резюме (ФВ1, ФВ5) — завантаження в S3 і подія, БЕЗ парсингу.
+"""Resumes (FR1, FR5) — upload to S3 and emit an event, WITHOUT parsing.
 
-Парсинг робить recommendation-worker: він споживає `user.resume.uploaded`,
-завантажує PDF із S3, парсить через LLM і повертає профіль подією
-`user.profile.parsed` у топік `resume-results`.
+Parsing is done by the recommendation-worker: it consumes `user.resume.uploaded`,
+downloads the PDF from S3, parses it via the LLM and returns the profile in the
+`user.profile.parsed` event on the `resume-results` topic.
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from app.services import s3
 
 router = APIRouter(prefix="/api/profile/me", tags=["resume"])
 
-MAX_RESUME_BYTES = 10 * 1024 * 1024  # 10 МБ
+MAX_RESUME_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 @router.post("/resume", response_model=ResumeOut, status_code=status.HTTP_201_CREATED)
@@ -44,7 +44,7 @@ async def upload_resume(
     await session.commit()
     await session.refresh(resume)
 
-    # Анонсуємо завантаження → worker підхопить і розпарсить.
+    # Announce the upload → the worker will pick it up and parse it.
     await publish_resume_uploaded(user.id, s3_key)
 
     download_url = await s3.presigned_get_url(s3_key)

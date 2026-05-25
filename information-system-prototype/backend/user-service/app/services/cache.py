@@ -1,7 +1,7 @@
-"""Кеш на Redis (in-memory, TTL). Best-effort: збій Redis не валить запит.
+"""Redis-backed cache (in-memory, TTL). Best-effort: a Redis failure does not break the request.
 
-C4 показує зв'язок user_api → cache. Кешуємо зібраний профіль користувача
-(`GET /api/profile/me`) і скидаємо ключ при будь-якій зміні профілю.
+The C4 diagram shows the user_api → cache link. We cache the assembled user profile
+(`GET /api/profile/me`) and drop the key on any profile change.
 """
 from __future__ import annotations
 

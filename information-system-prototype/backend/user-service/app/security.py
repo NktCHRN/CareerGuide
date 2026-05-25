@@ -1,7 +1,7 @@
-"""JWT (HS256) і хешування паролів.
+"""JWT (HS256) and password hashing.
 
-user-service — єдиний емітент токенів у системі. Access: ~30 хв, refresh —
-довгий. Payload access: {sub, role, email, exp, type}.
+user-service is the only token issuer in the system. Access: ~30 min, refresh
+is long-lived. Access payload: {sub, role, email, exp, type}.
 """
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ REFRESH = "refresh"
 
 
 # --------------------------------------------------------------------------- #
-#  Паролі
+#  Passwords
 # --------------------------------------------------------------------------- #
 def hash_password(password: str) -> str:
     return _pwd_context.hash(password)
@@ -58,12 +58,12 @@ def create_refresh_token(user_id: int) -> str:
 
 
 def decode_token(token: str) -> dict[str, Any]:
-    """Декодує і валідує підпис/термін. Кидає `JWTError` при помилці."""
+    """Decodes and validates the signature/expiry. Raises `JWTError` on failure."""
     return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALG])
 
 
 # --------------------------------------------------------------------------- #
-#  Токени для листів (verify / reset)
+#  Email tokens (verify / reset)
 # --------------------------------------------------------------------------- #
 def generate_email_token() -> str:
     return secrets.token_urlsafe(32)

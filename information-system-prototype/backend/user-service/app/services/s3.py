@@ -1,8 +1,8 @@
-"""Інтеграція з S3-сумісним сховищем (MinIO) через boto3.
+"""Integration with S3-compatible storage (MinIO) via boto3.
 
-user-service зберігає завантажені резюме (`resumes/{user_id}/{uuid}.pdf`) і
-віддає фронту presigned-GET посилання. boto3 синхронний — async-обгортки
-виконують виклики у пулі потоків.
+user-service stores uploaded resumes (`resumes/{user_id}/{uuid}.pdf`) and
+serves presigned-GET links to the frontend. boto3 is synchronous — the async
+wrappers run the calls in a thread pool.
 """
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ def _presigned_get(key: str, ttl: int) -> str:
 
 
 async def upload_resume(user_id: int, body: bytes) -> str:
-    """Завантажує PDF, повертає S3-ключ."""
+    """Uploads a PDF and returns the S3 key."""
     key = resume_key(user_id)
     await asyncio.to_thread(_put, key, body, "application/pdf")
     return key

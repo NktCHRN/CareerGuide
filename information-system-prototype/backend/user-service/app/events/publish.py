@@ -1,4 +1,4 @@
-"""Хелпери публікації подій із роутерів (після коміту транзакції)."""
+"""Helpers for publishing events from the routers (after the transaction commit)."""
 from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +9,7 @@ from app.services.profiles import build_profile_event_payload, load_full_profile
 
 
 async def publish_profile_updated(session: AsyncSession, user_id: int) -> None:
-    """Перечитує профіль і публікує `user.profile.updated` у топік user-events."""
+    """Re-reads the profile and publishes `user.profile.updated` to the user-events topic."""
     profile = await load_full_profile(session, user_id)
     if profile is None:
         return

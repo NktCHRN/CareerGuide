@@ -1,1 +1,1 @@
-"""UserService — керування акаунтом користувача (CareerGuide)."""
+"""UserService — user account management (CareerGuide)."""

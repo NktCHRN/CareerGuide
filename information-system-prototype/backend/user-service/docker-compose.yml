@@ -1,19 +1,20 @@
 # ============================================================================
-#  ЗРАЗОК per-service docker-compose.yml — user-service.
-#  Решта сервісів повторюють цей шаблон (своя БД + сам сервіс), змінюючи
-#  назву БД, порти й build-контекст. Recommendation-service — окремий випадок:
-#  один compose піднімає recommendationdb (pgvector) + api + worker.
+#  SAMPLE per-service docker-compose.yml — user-service.
+#  The other services follow this template (own DB + the service itself),
+#  changing the DB name, ports, and build context. Recommendation-service is a
+#  special case: a single compose brings up recommendationdb (pgvector) + api + worker.
 #
-#  Передумова: спільна інфра вже піднята (див. infra/README.md), існує мережа
-#  career-net.
+#  Prerequisite: the shared infra is already up (see infra/README.md) and the
+#  career-net network exists.
 #
-#  Запуск:
+#  Run:
 #     cd backend/user-service
 #     docker compose --env-file ../../.env up -d --build
 #
-#  --env-file ../../.env потрібен для інтерполяції ${...} у ЦЬОМУ файлі
-#  (Compose шукає .env у каталозі compose-файла, а спільний .env — у корені
-#  репо). Усі ${...} мають дефолти, тож і без прапорця сервіс підніметься.
+#  --env-file ../../.env is needed for ${...} interpolation in THIS file
+#  (Compose looks for .env in the compose file's directory, while the shared
+#  .env is in the repo root). All ${...} have defaults, so the service will
+#  come up even without the flag.
 # ============================================================================
 name: career-user-service
 
@@ -26,7 +27,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-career}
       POSTGRES_DB: userdb
     ports:
-      - "5433:5432"            # унікальний хост-порт на сервіс (career→5434, chat→5435, reco→5436…)
+      - "5433:5432"            # unique host port per service (career→5434, chat→5435, reco→5436…)
     volumes:
       - userdb-data:/var/lib/postgresql/data
     healthcheck:
@@ -44,16 +45,16 @@ services:
       userdb:
         condition: service_healthy
     env_file:
-      - path: ../../.env       # кореневий .env → JWT_SECRET, S3_*, OPENAI_*, SES_*, SEED_*…
-        required: false        # не обов'язковий: дефолти нижче дають змогу піднятися й без нього
+      - path: ../../.env       # root .env → JWT_SECRET, S3_*, OPENAI_*, SES_*, SEED_*…
+        required: false        # not required: the defaults below allow it to come up without it
     environment:
-      # Перевизначення хостів на внутрішні docker-імена
-      # (`environment:` має пріоритет над `env_file:`).
+      # Override hosts with internal docker names
+      # (`environment:` takes priority over `env_file:`).
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-career}:${POSTGRES_PASSWORD:-career}@userdb:5432/userdb
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       REDIS_URL: redis://redis:6379/0
       S3_ENDPOINT_URL: http://minio:9000
-      # AUTH_MODE: gateway     # розкоментуй, коли сервіс працює за API Gateway
+      # AUTH_MODE: gateway     # uncomment when the service runs behind an API Gateway
     ports:
       - "8001:8001"
     command: >
@@ -67,4 +68,4 @@ volumes:
 
 networks:
   career-net:
-    external: true             # створюється infra/docker-compose.yml
+    external: true             # created by infra/docker-compose.yml

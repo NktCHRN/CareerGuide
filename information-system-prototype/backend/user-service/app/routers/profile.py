@@ -1,4 +1,4 @@
-"""Профіль користувача (ФВ4, ФВ5, ФВ8)."""
+"""User profile (FR4, FR5, FR8)."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
@@ -77,7 +77,7 @@ async def update_criteria(
     await session.commit()
     await cache.delete(cache.profile_key(user.id))
 
-    # Зміна критеріїв теж тягне user.profile.updated (спільні конвенції).
+    # A criteria change also triggers user.profile.updated (shared conventions).
     await publish_profile_updated(session, user.id)
 
     profile = await load_full_profile(session, user.id)

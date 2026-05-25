@@ -1,4 +1,4 @@
-"""SQLAlchemy-моделі бази `userdb`."""
+"""SQLAlchemy models for the `userdb` database."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -80,7 +80,7 @@ class ProfileExperience(Base):
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # Ключ industry_to_id у UPPERCASE-формі (напр. INFORMATION-TECHNOLOGY) або NULL.
+    # industry_to_id key in UPPERCASE form (e.g. INFORMATION-TECHNOLOGY) or NULL.
     industry: Mapped[str | None] = mapped_column(String(64), nullable=True)
     start: Mapped[str | None] = mapped_column(String(16), nullable=True)  # "M/YYYY"
     end: Mapped[str | None] = mapped_column(  # "M/YYYY" | "current"
@@ -93,7 +93,7 @@ class ProfileExperience(Base):
 
 
 class EscoSkill(Base):
-    """Навички користувача, змаповані в ESCO (наповнює worker подією)."""
+    """User skills mapped to ESCO (populated by the worker via an event)."""
 
     __tablename__ = "esco_skills"
 
