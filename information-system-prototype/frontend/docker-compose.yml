@@ -1,0 +1,34 @@
+# ============================================================================
+#  Per-service docker-compose.yml — frontend (Next.js, SSR).
+#  Brings up ONLY the frontend container. It talks server-side to the API
+#  Gateway over the shared `career-net` network (by container name) and is the
+#  only frontend port published to the host (3000).
+#
+#  Prerequisites on `career-net`:
+#    career-api-gateway:8000   (backend/api-gateway)
+#  and the shared infra from infra/ that creates the `career-net` network.
+#
+#  Run:
+#     cd frontend
+#     docker compose up -d --build
+# ============================================================================
+name: career-frontend
+
+services:
+  frontend:
+    build: .
+    container_name: career-frontend
+    environment:
+      # Server-side base URL of the gateway on career-net (container name).
+      GATEWAY_URL: http://career-api-gateway:8000
+      # Set to "true" only when serving the frontend over HTTPS.
+      COOKIE_SECURE: "false"
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    networks:
+      - career-net
+
+networks:
+  career-net:
+    external: true # created by infra/docker-compose.yml
