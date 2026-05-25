@@ -1,0 +1,52 @@
+# ============================================================================
+#  Per-service docker-compose.yml — career-service.
+#  Brings up ONLY the service container; the database lives in the SHARED
+#  PostgreSQL instance from infra/ (logical DB `careerdb`). It does NOT run its
+#  own Postgres — it connects to `postgres:5432` over the `career-net` network.
+#
+#  Prerequisite: the shared infra is already up (see infra/README.md) — the
+#  `postgres`, `kafka`, `minio`, `redis` containers and the `career-net` network.
+#
+#  Run:
+#     cd backend/career-service
+#     docker compose --env-file ../../.env up -d --build
+#
+#  --env-file ../../.env is needed for ${...} interpolation in THIS file
+#  (Compose looks for .env in the compose file's directory, while the shared
+#  .env is in the repo root). All ${...} have defaults, so the service will
+#  come up even without the flag.
+#
+#  The ESCO CSVs (data/esco/*.csv) are mounted read-only for the seeding
+#  migration — place them there first (see README.md).
+# ============================================================================
+name: career-career-service
+
+services:
+  career-service:
+    build: .
+    container_name: career-career-service
+    env_file:
+      - path: ../../.env       # root .env → JWT_SECRET, S3_*, KAFKA_*, REDIS_URL…
+        required: false        # not required: the defaults below allow it to come up without it
+    environment:
+      # Connect to the SHARED Postgres (database `careerdb`) and the rest of the
+      # infra by their internal docker names (`environment:` overrides `env_file:`).
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-career}:${POSTGRES_PASSWORD:-career}@postgres:5432/careerdb
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT_URL: http://minio:9000
+      ESCO_DATA_DIR: /app/data/esco
+      # AUTH_MODE: gateway     # uncomment when the service runs behind an API Gateway
+    volumes:
+      - ./data/esco:/app/data/esco:ro   # ESCO CSVs for the seeding migration
+    ports:
+      - "8002:8002"
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8002"
+    networks:
+      - career-net
+
+networks:
+  career-net:
+    external: true             # created by infra/docker-compose.yml

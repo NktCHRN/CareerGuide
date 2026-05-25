@@ -1,0 +1,23 @@
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- secrets / config (only .env.example is committed) ---
+.env
+*.env
+!.env.example
+
+# --- ESCO data (placed manually, not committed — see README) ---
+data/esco/*.csv
+
+# --- IDE / OS / logs ---
+.idea/
+.vscode/
+*.log
+.DS_Store

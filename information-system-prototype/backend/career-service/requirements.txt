@@ -1,0 +1,24 @@
+# --- Web / API ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# --- Validation / settings ---
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# --- DB (async) ---
+SQLAlchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# --- Auth (JWT validation only; no token issuing, no passwords) ---
+python-jose[cryptography]==3.3.0
+
+# --- Kafka (Message Bus) ---
+aiokafka==0.12.0
+
+# --- S3 / MinIO ---
+boto3==1.35.90
+
+# --- Redis (cache) ---
+redis==5.2.1
