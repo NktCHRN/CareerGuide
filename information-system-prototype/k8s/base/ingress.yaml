@@ -1,0 +1,37 @@
+# ============================================================================
+#  Ingress — single host, path-based routing (ingress-nginx).
+#    /api  → api-gateway:8000   (the only backend entry point)
+#    /     → frontend:3000      (Next.js SSR)
+#  nginx selects the longest matching prefix, so /api/* goes to the gateway and
+#  everything else to the frontend. TLS is omitted (add a `tls:` block + cert
+#  Secret to enable HTTPS — then set COOKIE_SECURE=true on the frontend).
+#
+#  Local access: map the host to the ingress controller, e.g. add to /etc/hosts
+#      127.0.0.1  career-guide.local
+#  (kind: install ingress-nginx with host ports 80/443; minikube: `minikube tunnel`
+#   or `minikube ip` + hosts entry). See k8s/README.md.
+# ============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: career-guide
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "25m"   # allow resume PDF uploads
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: career-guide.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port: { number: 8000 }
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port: { number: 3000 }

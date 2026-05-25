@@ -1,0 +1,48 @@
+# ============================================================================
+#  api-gateway (:8000) — the single public backend entry point. Stateless: it
+#  validates JWTs and reverse-proxies to the services by their in-cluster DNS
+#  names (USER_SERVICE_URL etc. come from app-config). Exposed via Ingress.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  labels: { app: api-gateway }
+spec:
+  selector: { app: api-gateway }
+  ports:
+    - { name: http, port: 8000, targetPort: 8000 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: api-gateway } }
+  template:
+    metadata:
+      labels: { app: api-gateway }
+    spec:
+      containers:
+        - name: api-gateway
+          image: careerguide/api-gateway:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { containerPort: 8000 }
+          envFrom:
+            - configMapRef: { name: app-config }
+          env:
+            - name: JWT_SECRET
+              valueFrom: { secretKeyRef: { name: app-secrets, key: JWT_SECRET } }
+          readinessProbe:
+            httpGet: { path: /api/health, port: 8000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/health, port: 8000 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "50m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "256Mi" }

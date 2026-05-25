@@ -1,0 +1,60 @@
+# ============================================================================
+#  career-service (:8002) — ESCO professions catalogue, admin CRUD, photos (S3),
+#  publishes `profession-events`. Table creation + ESCO seeding run in the
+#  career-migrate Job; this Deployment only serves (default image CMD = uvicorn)
+#  and does NOT need the ESCO CSVs at runtime.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: career-service
+  labels: { app: career-service }
+spec:
+  selector: { app: career-service }
+  ports:
+    - { name: http, port: 8002, targetPort: 8002 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: career-service
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: career-service } }
+  template:
+    metadata:
+      labels: { app: career-service }
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: postgres:16
+          env:
+            - name: POSTGRES_USER
+              valueFrom: { configMapKeyRef: { name: app-config, key: POSTGRES_USER } }
+          command: ["sh", "-c", "until pg_isready -h careerdb -p 5432 -U \"$POSTGRES_USER\"; do echo waiting for careerdb; sleep 2; done"]
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done"]
+      containers:
+        - name: career-service
+          image: careerguide/career-service:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { containerPort: 8002 }
+          envFrom:
+            - configMapRef: { name: app-config }
+            - secretRef: { name: app-secrets }
+          env:
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: app-secrets, key: CAREER_DATABASE_URL } }
+          readinessProbe:
+            httpGet: { path: /api/health, port: 8002 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/health, port: 8002 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits: { cpu: "1", memory: "512Mi" }

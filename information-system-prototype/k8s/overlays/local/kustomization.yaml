@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Local single-node cluster (kind / minikube / Docker Desktop).
+namespace: career-guide
+
+resources:
+  - ../../base
+
+# The base already pins each app image to `careerguide/<name>:local` with
+# imagePullPolicy: IfNotPresent — load the locally-built images into the cluster
+# (kind load / minikube image load), no registry needed. This block is where you
+# retag/repoint images (e.g. to a local registry) for your environment.
+images:
+  - { name: careerguide/api-gateway, newTag: local }
+  - { name: careerguide/user-service, newTag: local }
+  - { name: careerguide/career-service, newTag: local }
+  - { name: careerguide/recommendation-api, newTag: local }
+  - { name: careerguide/chat-service, newTag: local }
+  - { name: careerguide/recommendation-worker, newTag: local }
+  - { name: careerguide/frontend, newTag: local }
+  - { name: careerguide/data-loader, newTag: local }
+
+# All Deployments default to 1 replica (prototype). To scale a stateless service
+# locally, uncomment and adjust — leave the worker and StatefulSets at 1.
+# replicas:
+#   - { name: api-gateway, count: 2 }
+#   - { name: frontend, count: 2 }

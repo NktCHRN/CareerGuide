@@ -1,0 +1,59 @@
+# ============================================================================
+#  Non-secret shared configuration for ALL CareerGuide components.
+#  Most service Deployments mount this whole map via `envFrom.configMapRef`;
+#  pydantic-settings uses `extra=ignore`, so unrelated keys are harmless.
+#  Secret values (JWT, OpenAI, S3 keys, SES, HF, DB URLs) live in app-secrets.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  # --- General ---
+  APP_ENV: "dev"            # dev | prod. dev keeps the email-disabled flow returning
+                            # verify/reset tokens in the response (handy without SES).
+  AUTH_MODE: "gateway"      # K8s/prod: services trust X-User-Id / X-User-Role from the gateway.
+  CORS_ORIGINS: "http://career-guide.local,http://localhost:3000"
+
+  # --- PostgreSQL (database-per-service; user is shared, password is in app-secrets) ---
+  POSTGRES_USER: "career"
+
+  # --- Kafka (in-cluster broker Service) ---
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+
+  # --- Redis ---
+  REDIS_URL: "redis://redis:6379/0"
+
+  # --- S3 / MinIO (in-cluster) ---
+  S3_ENDPOINT_URL: "http://minio:9000"
+  S3_BUCKET: "career-guide"
+  S3_REGION: "us-east-1"
+
+  # --- OpenAI (resume parsing in worker, assistant in chat) ---
+  OPENAI_MODEL: "gpt-4o-mini"
+
+  # --- Email / AWS SES (user-service only; feature-flagged off by default) ---
+  FEATURE_EMAIL_ENABLED: "false"
+  AWS_SES_REGION: "us-east-1"
+  SES_FROM_EMAIL: "no-reply@career-guide.local"
+  FRONTEND_BASE_URL: "http://career-guide.local"
+
+  # --- API Gateway → downstream services (in-cluster Service DNS) ---
+  USER_SERVICE_URL: "http://user-service:8001"
+  CAREER_SERVICE_URL: "http://career-service:8002"
+  RECO_API_URL: "http://recommendation-api:8003"
+  CHAT_SERVICE_URL: "http://chat-service:8004"
+  GATEWAY_VERIFY_VIA_USER_SERVICE: "false"
+
+  # --- career-service: ESCO seeding CSV directory (populated by an initContainer) ---
+  ESCO_DATA_DIR: "/app/data/esco"
+
+  # --- recommendation-worker: model/data paths (volumes populated by an initContainer) ---
+  MODEL_CKPT_PATH: "/app/models/gru-attn-bidirectional-final_seed4.pth"
+  INDUSTRY_VOCAB_PATH: "/app/models/industry_to_id.json"
+  LIVECAREER_CATEGORIES_PATH: "/app/data/livecareer_resume_categories.csv"
+  ESCO_SKILLS_CSV: "/app/data/skills_en.csv"
+  SBERT_MODEL: "ElenaSenger/career-path-representation-mpnet-decorte"
+  ESCO_SKILL_EMBED_MODEL: "google/embeddinggemma-300m"
+  HF_HOME: "/app/.hf-cache"
+  DEVICE: "auto"            # auto | cpu | cuda

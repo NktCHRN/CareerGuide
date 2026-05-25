@@ -1,0 +1,49 @@
+# ============================================================================
+#  career-migrate — `alembic upgrade head` for careerdb (creates tables AND seeds
+#  the ~3043 ESCO professions). The seeding migration reads the ESCO CSVs from
+#  ESCO_DATA_DIR (/app/data/esco); an initContainer copies them there from the
+#  data-loader image onto an emptyDir. Run before career-backfill.
+# ============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: career-migrate
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels: { app: career-migrate }
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-db
+          image: postgres:16
+          env:
+            - name: POSTGRES_USER
+              valueFrom: { configMapKeyRef: { name: app-config, key: POSTGRES_USER } }
+          command: ["sh", "-c", "until pg_isready -h careerdb -p 5432 -U \"$POSTGRES_USER\"; do echo waiting for careerdb; sleep 2; done"]
+        - name: load-esco
+          image: careerguide/data-loader:local
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "cp -a /seed/esco/. /esco/ && echo 'ESCO CSVs copied' && ls -la /esco"]
+          volumeMounts:
+            - { name: esco, mountPath: /esco }
+      containers:
+        - name: migrate
+          image: careerguide/career-service:local
+          imagePullPolicy: IfNotPresent
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef: { name: app-config }     # ESCO_DATA_DIR=/app/data/esco
+            - secretRef: { name: app-secrets }
+          env:
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: app-secrets, key: CAREER_DATABASE_URL } }
+          volumeMounts:
+            - { name: esco, mountPath: /app/data/esco }
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "2", memory: "1Gi" }
+      volumes:
+        - name: esco
+          emptyDir: {}

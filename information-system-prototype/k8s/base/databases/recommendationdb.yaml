@@ -1,0 +1,71 @@
+# ============================================================================
+#  recommendationdb — dedicated PostgreSQL StatefulSet for the recommendation
+#  service (worker owns the schema, api reads). Uses the pgvector image and an
+#  initdb script that enables the `vector` extension on first initialization.
+#  Shared by recommendation-worker (writes) and recommendation-api (reads).
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: recommendationdb-init
+data:
+  01-enable-pgvector.sql: |
+    CREATE EXTENSION IF NOT EXISTS vector;
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendationdb
+  labels: { app: recommendationdb }
+spec:
+  clusterIP: None
+  selector: { app: recommendationdb }
+  ports:
+    - { name: postgres, port: 5432, targetPort: 5432 }
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: recommendationdb
+spec:
+  serviceName: recommendationdb
+  replicas: 1
+  selector: { matchLabels: { app: recommendationdb } }
+  template:
+    metadata:
+      labels: { app: recommendationdb }
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg16
+          env:
+            - name: POSTGRES_USER
+              valueFrom: { configMapKeyRef: { name: app-config, key: POSTGRES_USER } }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: app-secrets, key: POSTGRES_PASSWORD } }
+            - { name: POSTGRES_DB, value: "recommendationdb" }
+            - { name: PGDATA, value: "/var/lib/postgresql/data/pgdata" }
+          ports:
+            - { name: postgres, containerPort: 5432 }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: initdb, mountPath: /docker-entrypoint-initdb.d, readOnly: true }
+          readinessProbe:
+            exec: { command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d recommendationdb"] }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec: { command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\""] }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits: { cpu: "1", memory: "768Mi" }
+      volumes:
+        - name: initdb
+          configMap: { name: recommendationdb-init }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources: { requests: { storage: 3Gi } }

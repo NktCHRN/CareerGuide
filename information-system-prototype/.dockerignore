@@ -1,0 +1,30 @@
+# ============================================================================
+#  Build-context ignore for builds that use the PROJECT ROOT as context.
+#  Only the k8s `data-loader` image (k8s/data-loader/Dockerfile) builds from here;
+#  per-service images build from their own sub-directories and use their own
+#  .dockerignore, so this file never affects them.
+#
+#  The data-loader bakes the ML artifacts + ESCO/LiveCareer CSVs, so the data
+#  directories are intentionally NOT excluded here.
+# ============================================================================
+.git/
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/node_modules/
+**/.next/
+**/.turbo/
+**/.hf-cache/
+.env
+**/*.env
+!**/.env.example
+**/.idea/
+**/.vscode/
+**/*.log
+documentation/
+infra/
+k8s/

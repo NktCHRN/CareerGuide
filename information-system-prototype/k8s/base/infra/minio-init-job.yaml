@@ -1,0 +1,54 @@
+# ============================================================================
+#  minio-init — creates the S3 bucket and (optionally) uploads the default
+#  profession photo, then exits. Mirrors the infra/docker-compose `minio-init`.
+#
+#  The default photo is OPTIONAL: if you want one, create a ConfigMap named
+#  `minio-default-photo` holding `profession-default.jpg`, e.g.
+#     kubectl -n career-guide create configmap minio-default-photo \
+#         --from-file=profession-default.jpg=/path/to/photo.jpg
+#  The volume below is `optional: true`, so the Job runs fine without it
+#  (it just skips the upload — career-service tolerates a missing default photo).
+# ============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-init
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels: { app: minio-init }
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mc
+          image: minio/mc
+          env:
+            - name: S3_ACCESS_KEY
+              valueFrom: { secretKeyRef: { name: app-secrets, key: S3_ACCESS_KEY } }
+            - name: S3_SECRET_KEY
+              valueFrom: { secretKeyRef: { name: app-secrets, key: S3_SECRET_KEY } }
+            - name: S3_BUCKET
+              valueFrom: { configMapKeyRef: { name: app-config, key: S3_BUCKET } }
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              export MC_HOST_local="http://${S3_ACCESS_KEY}:${S3_SECRET_KEY}@minio:9000"
+              echo "minio-init: waiting for MinIO..."
+              until mc ls local >/dev/null 2>&1; do sleep 2; done
+              mc mb --ignore-existing "local/${S3_BUCKET}"
+              if [ -f /assets/profession-default.jpg ]; then
+                mc cp /assets/profession-default.jpg "local/${S3_BUCKET}/professions/_default.jpg"
+                echo "minio-init: uploaded default photo → professions/_default.jpg"
+              else
+                echo "minio-init: no /assets/profession-default.jpg — skipping default photo upload"
+              fi
+              echo "minio-init: done."
+          volumeMounts:
+            - { name: assets, mountPath: /assets, readOnly: true }
+      volumes:
+        - name: assets
+          configMap:
+            name: minio-default-photo
+            optional: true          # absent by default → /assets is empty → upload is skipped

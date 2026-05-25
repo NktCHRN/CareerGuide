@@ -1,0 +1,53 @@
+# ============================================================================
+#  career-backfill — publishes every seeded profession to Kafka (profession-events
+#  / profession.upserted) so the recommendation-worker and chat-service build their
+#  local copies + vectors. Runs `python -m app.events.backfill_professions`.
+#
+#  Must run AFTER career-migrate has seeded careerdb: the gate initContainer
+#  blocks until the `professions` table has rows, so a single `kubectl apply -k`
+#  converges without manual ordering.
+# ============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: career-backfill
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels: { app: career-backfill }
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done"]
+        - name: wait-for-seed
+          image: postgres:16
+          env:
+            - name: POSTGRES_USER
+              valueFrom: { configMapKeyRef: { name: app-config, key: POSTGRES_USER } }
+            - name: PGPASSWORD
+              valueFrom: { secretKeyRef: { name: app-secrets, key: POSTGRES_PASSWORD } }
+          command:
+            - sh
+            - -c
+            - |
+              until COUNT=$(psql -h careerdb -U "$POSTGRES_USER" -d careerdb -tAc 'select count(*) from professions' 2>/dev/null); [ "${COUNT:-0}" -ge 1 ]; do
+                echo "waiting for professions to be seeded (have ${COUNT:-0})"; sleep 5
+              done
+              echo "professions seeded: $COUNT"
+      containers:
+        - name: backfill
+          image: careerguide/career-service:local
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.events.backfill_professions"]
+          envFrom:
+            - configMapRef: { name: app-config }
+            - secretRef: { name: app-secrets }
+          env:
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: app-secrets, key: CAREER_DATABASE_URL } }
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits: { cpu: "1", memory: "512Mi" }

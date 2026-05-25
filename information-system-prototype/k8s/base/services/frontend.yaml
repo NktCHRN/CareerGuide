@@ -1,0 +1,49 @@
+# ============================================================================
+#  frontend (:3000) — Next.js (App Router, SSR). Talks to the API Gateway
+#  server-side over in-cluster DNS (GATEWAY_URL). Exposed via Ingress at `/`.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  labels: { app: frontend }
+spec:
+  selector: { app: frontend }
+  ports:
+    - { name: http, port: 3000, targetPort: 3000 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: frontend } }
+  template:
+    metadata:
+      labels: { app: frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: careerguide/frontend:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { containerPort: 3000 }
+          env:
+            # Server-side base URL of the gateway (in-cluster Service name).
+            - { name: GATEWAY_URL, value: "http://api-gateway:8000" }
+            # "true" only when the frontend is served over HTTPS.
+            - { name: COOKIE_SECURE, value: "false" }
+            - { name: NODE_ENV, value: "production" }
+            - { name: NEXT_TELEMETRY_DISABLED, value: "1" }
+          readinessProbe:
+            httpGet: { path: /, port: 3000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /, port: 3000 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits: { cpu: "1", memory: "512Mi" }

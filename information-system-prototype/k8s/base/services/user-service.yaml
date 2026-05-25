@@ -1,0 +1,59 @@
+# ============================================================================
+#  user-service (:8001) — accounts, profiles, JWT issuing, resume uploads (S3),
+#  consumes `resume-results` from Kafka. Migrations + account seeding run in the
+#  user-migrate Job, so this Deployment only serves (default image CMD = uvicorn).
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  labels: { app: user-service }
+spec:
+  selector: { app: user-service }
+  ports:
+    - { name: http, port: 8001, targetPort: 8001 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: user-service } }
+  template:
+    metadata:
+      labels: { app: user-service }
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: postgres:16
+          env:
+            - name: POSTGRES_USER
+              valueFrom: { configMapKeyRef: { name: app-config, key: POSTGRES_USER } }
+          command: ["sh", "-c", "until pg_isready -h userdb -p 5432 -U \"$POSTGRES_USER\"; do echo waiting for userdb; sleep 2; done"]
+        - name: wait-for-kafka
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z kafka 9092; do echo waiting for kafka; sleep 2; done"]
+      containers:
+        - name: user-service
+          image: careerguide/user-service:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { containerPort: 8001 }
+          envFrom:
+            - configMapRef: { name: app-config }
+            - secretRef: { name: app-secrets }
+          env:
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: app-secrets, key: USER_DATABASE_URL } }
+          readinessProbe:
+            httpGet: { path: /api/health, port: 8001 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/health, port: 8001 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits: { cpu: "1", memory: "512Mi" }

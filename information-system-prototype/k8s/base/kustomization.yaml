@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Everything below lands in the career-guide namespace.
+namespace: career-guide
+
+resources:
+  # namespace
+  - namespace.yaml
+  # config (non-secret + secret)
+  - config/configmap.yaml
+  - config/secret.yaml
+  # infrastructure
+  - infra/kafka.yaml
+  - infra/redis.yaml
+  - infra/minio.yaml
+  - infra/minio-init-job.yaml
+  # databases (database-per-service)
+  - databases/userdb.yaml
+  - databases/careerdb.yaml
+  - databases/chatdb.yaml
+  - databases/recommendationdb.yaml
+  # microservices + frontend
+  - services/api-gateway.yaml
+  - services/user-service.yaml
+  - services/career-service.yaml
+  - services/recommendation-api.yaml
+  - services/chat-service.yaml
+  - services/recommendation-worker.yaml
+  - services/frontend.yaml
+  # migration/seeding + backfill jobs
+  - jobs/user-migrate.yaml
+  - jobs/career-migrate.yaml
+  - jobs/recommendation-migrate.yaml
+  - jobs/chat-migrate.yaml
+  - jobs/career-backfill.yaml
+  - jobs/user-backfill.yaml
+  # ingress
+  - ingress.yaml
+
+# Stamp a grouping label on every object's metadata WITHOUT touching selectors
+# (selectors/matchLabels are immutable after creation).
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: career-guide
+    includeSelectors: false

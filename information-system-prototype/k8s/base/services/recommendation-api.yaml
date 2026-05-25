@@ -1,0 +1,56 @@
+# ============================================================================
+#  recommendation-api (:8003) — synchronous, READ-ONLY consumer of recommendationdb
+#  (pgvector): ranks profession_vectors against a user's vector by cosine similarity,
+#  caches the first page in Redis. The worker owns the schema; this never migrates.
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendation-api
+  labels: { app: recommendation-api }
+spec:
+  selector: { app: recommendation-api }
+  ports:
+    - { name: http, port: 8003, targetPort: 8003 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendation-api
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: recommendation-api } }
+  template:
+    metadata:
+      labels: { app: recommendation-api }
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: postgres:16
+          env:
+            - name: POSTGRES_USER
+              valueFrom: { configMapKeyRef: { name: app-config, key: POSTGRES_USER } }
+          command: ["sh", "-c", "until pg_isready -h recommendationdb -p 5432 -U \"$POSTGRES_USER\"; do echo waiting for recommendationdb; sleep 2; done"]
+      containers:
+        - name: recommendation-api
+          image: careerguide/recommendation-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { containerPort: 8003 }
+          envFrom:
+            - configMapRef: { name: app-config }
+            - secretRef: { name: app-secrets }
+          env:
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: app-secrets, key: RECO_DATABASE_URL } }
+          readinessProbe:
+            httpGet: { path: /api/health, port: 8003 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/health, port: 8003 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits: { cpu: "1", memory: "512Mi" }
